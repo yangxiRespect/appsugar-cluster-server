@@ -1,0 +1,4 @@
+rootProject.name = "appsugar-cluster-service";
+
+include("appsugar-cluster-service-api")
+

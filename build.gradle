@@ -1,0 +1,64 @@
+buildscript {	
+	repositories {
+		mavenCentral()
+		mavenLocal()
+		jcenter()
+	}
+		
+}
+//load properties from config file
+def loadGroovyConfig(p){
+		if(p == null){
+			return new java.util.HashMap();
+		}
+		def configFile = file("environment.groovy")
+		def profileObject = new ConfigSlurper(p).parse(configFile.toURL()).toProperties()
+		if(profileObject.isEmpty()){
+			throw new InvalidUserDataException("profile not found name is "+p);
+		}
+		return profileObject
+		
+}
+def env = loadGroovyConfig("base")
+env.putAll(loadGroovyConfig(System.getProperty("profile")))
+env.putAll(System.properties)
+
+configure(subprojects) { project ->
+	apply plugin: "java"
+	sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+	repositories {
+		mavenCentral()
+		mavenLocal()
+	}
+	// put env to project ext
+	env.each{ k, v -> ext.set(k,v)}
+	
+	ext{
+		slf4jVersion = "1.7.21"
+		junitVersion = "4.12"
+		logbackVersion = "1.1.7"
+	}
+	compileJava.options.encoding = ext["encoding"];
+	compileTestJava.options.encoding = ext["encoding"];
+	
+	dependencies{
+		testCompile ("junit:junit:${junitVersion}")
+	}
+	processTestResources {
+		from(sourceSets.test.resources.srcDirs) {
+			include '**/*.properties'
+			filter(org.apache.tools.ant.filters.ReplaceTokens,tokens: env)
+		}
+	}
+	test{
+		testLogging{
+			showStandardStreams  = true
+		}
+	}
+}
+
+
+project(":appsugar-cluster-service-api"){
+	
+}
