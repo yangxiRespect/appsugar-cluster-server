@@ -15,14 +15,14 @@ public interface ServiceRef {
 	/**
 	 * {@link ServiceRef#ask(Object, int)} 
 	 */
-	Object ask(Object msg);
+	<T> T ask(Object msg);
 
 	/**
 	 * 同步请求服务并获取返回结果
 	 * @param msg 发送给服务的消息
 	 * @param timeout 服务响应超时时间
 	 */
-	Object ask(Object msg, int timeout);
+	<T> T ask(Object msg, int timeout);
 
 	/**
 	 * {@link ServiceRef#ask(Object, Consumer, Consumer, int)} 
