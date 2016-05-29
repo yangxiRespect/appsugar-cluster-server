@@ -38,6 +38,9 @@ configure(subprojects) { project ->
 		slf4jVersion = "1.7.21"
 		junitVersion = "4.12"
 		logbackVersion = "1.1.7"
+		akkaVersion = "2.4.6"
+		fstVersion = "2.47"
+		protostuffVersion = "1.4.3"
 	}
 	compileJava.options.encoding = ext["encoding"];
 	compileTestJava.options.encoding = ext["encoding"];
@@ -61,4 +64,20 @@ configure(subprojects) { project ->
 
 project(":appsugar-cluster-service-api"){
 	
+}
+
+project(":appsugar-cluster-service-akka"){
+	dependencies{
+		compile project(":appsugar-cluster-service-api")
+		compile("com.typesafe.akka:akka-cluster_2.11:${akkaVersion}")
+		compile("com.typesafe.akka:akka-cluster-tools_2.11:${akkaVersion}")
+		compile("com.typesafe.akka:akka-cluster-metrics_2.11:${akkaVersion}")
+		compile("org.slf4j:slf4j-api:${slf4jVersion}")
+		compile("ch.qos.logback:logback-classic:${logbackVersion}")
+		compile ("de.ruedigermoeller:fst:${fstVersion}")
+		compile ("io.protostuff:protostuff-core:${protostuffVersion}")
+		compile ("io.protostuff:protostuff-runtime:${protostuffVersion}")
+		compile ("io.protostuff:protostuff-runtime-registry:${protostuffVersion}")
+		
+	}
 }
