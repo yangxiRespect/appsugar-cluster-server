@@ -22,9 +22,10 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystemTest.class);
 
 	@Test
-	public void testSingleSystem() {
+	public void testSingleSystem() throws Exception {
 		ServiceClusterSystem system = new AkkaServiceClusterSystem("system", ConfigFactory.load("application.conf"));
-		ServiceRef serviceRef = system.serviceFor(new SayHelloService(), "hello");
+		Service service = new SayHelloService();
+		ServiceRef serviceRef = system.serviceFor(service, "hello");
 		String msg = serviceRef.ask("xx");
 		ServiceClusterRef clusterRef = system.serviceOf("hello");
 		String msg1 = clusterRef.one().ask("xxx");
@@ -33,6 +34,10 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		String msg2 = clusterRef.balance().ask("1");
 		String msg3 = clusterRef.random().ask("1");
 		logger.debug(" cluster Ref balance {} random {} ", msg2, msg3);
+		Assert.assertEquals(clusterRef.size(), 2);
+		system.stop(service);
+		Thread.sleep(1000);
+		Assert.assertEquals(clusterRef.size(), 1);
 	}
 
 	@Test

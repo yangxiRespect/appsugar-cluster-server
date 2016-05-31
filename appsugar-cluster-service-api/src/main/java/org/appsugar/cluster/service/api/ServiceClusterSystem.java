@@ -36,4 +36,10 @@ public interface ServiceClusterSystem extends SubPubClusterSystem {
 	 */
 	Cancellable schedule(ServiceRef serviceRef, long time, Object msg);
 
+	/**
+	 * 停止服务
+	 * @param service
+	 */
+	void stop(Service service);
+
 }

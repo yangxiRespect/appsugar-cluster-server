@@ -34,7 +34,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
-	private Map<Service, Object> localServices = new ConcurrentHashMap<>();
+	private Map<Service, AkkaServiceRef> localServices = new ConcurrentHashMap<>();
 	private Map<String, AkkaServiceClusterRef> serviceClusterRefs = new ConcurrentHashMap<>();
 	private Map<ActorRef, AkkaServiceRef> actorRefMapping = new ConcurrentHashMap<>();
 
@@ -111,7 +111,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 			if (localServices.containsKey(service)) {
 				throw new RuntimeException("service already register " + "name " + name);
 			}
-			localServices.put(service, name);
+
 			MessageProcessorChain chain = new MessageProcessorChain(new AskPatternMessageProcessor(),
 					new ServiceInvokeProcessor(service, this));
 			//创建一个service actor TODO 减少actor名称长度, 
@@ -119,7 +119,9 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 					actorNameGenerator.getAndIncrement() + "");
 			try {
 				actorShareSystem.share(ref, name).get();
-				return actorRefMapping.get(ref);
+				AkkaServiceRef result = actorRefMapping.get(ref);
+				localServices.put(service, result);
+				return result;
 			} catch (Exception ex) {
 				throw new RuntimeException(ex);
 			}
@@ -157,5 +159,14 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 			serviceClusterRefs.put(name, ref);
 		}
 		return ref;
+	}
+
+	@Override
+	public void stop(Service service) {
+		AkkaServiceRef ref = localServices.remove(service);
+		if (ref == null) {
+			return;
+		}
+		system.stop(ref.destination());
 	}
 }
