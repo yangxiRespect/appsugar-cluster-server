@@ -52,7 +52,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	 * 共享指定actor
 	 */
 	public CompletableFuture<Boolean> share(ActorRef ref, String name) {
-		logger.info("prepare share local actor ref {}", ref);
+		logger.debug("prepare share local actor ref {}", ref);
 		if (!ref.path().address().hasLocalScope()) {
 			throw new RuntimeException("actor ref not local  " + ref);
 		}
@@ -64,14 +64,13 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 
 	@Override
 	public void handle(List<ActorShare> actors, ClusterStatus status) {
-		logger.info(" share actor event  status {} share {}", status, actors);
+		logger.debug(" share actor event  status {} share {}", status, actors);
 		//通知本地监听器修改
 		try {
 			actorShareListener.handle(actors, status);
 		} finally {
 			//如果是本地actor服务(本地服务一次只会有一个)
 			if (actors.size() == 1 && actors.get(0).getActorRef().path().address().hasLocalScope()) {
-				logger.debug("add to local {}", actors);
 				if (ClusterStatus.UP.equals(status)) {
 					localActorRefList.addAll(actors);
 				} else {
@@ -91,7 +90,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	public void handle(Member m, ClusterStatus state) {
 		ActorSelection as = system.actorSelection(m.address() + ACTOR_SHARE_COLLECTOR_PATH);
 		if (as.anchorPath().address().hasLocalScope()) {
-			logger.debug("self member up  do nothing");
+			logger.debug("self member event  do nothing");
 			return;
 		}
 		logger.info("member event status {} member {}", state, m);

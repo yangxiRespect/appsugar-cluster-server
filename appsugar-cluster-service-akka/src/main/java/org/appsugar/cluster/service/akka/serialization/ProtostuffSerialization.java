@@ -1,15 +1,16 @@
 package org.appsugar.cluster.service.akka.serialization;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Map;
 
-import org.appsugar.cluster.service.akka.share.ActorClusterShareMessage;
-import org.appsugar.cluster.service.akka.share.ActorShare;
-import org.appsugar.cluster.service.akka.share.ClusterStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ExtendedActorSystem;
 import akka.serialization.JSerializer;
@@ -56,6 +57,7 @@ public class ProtostuffSerialization extends JSerializer {
 
 	@Override
 	public byte[] toBinary(Object msg) {
+		//TODO bad performance
 		LinkedBuffer buffer = LinkedBuffer.allocate(bufferSize);
 		Schema<ProtostuffObjectWrapper> schema = RuntimeSchema.getSchema(ProtostuffObjectWrapper.class, idStrategy);
 		try {
@@ -77,21 +79,17 @@ public class ProtostuffSerialization extends JSerializer {
 	protected void registerClass(Config config) {
 		Registry registry = new ExplicitIdStrategy.Registry();
 		idStrategy = registry.strategy;
-		//注册系统本身
-		registry.registerPojo(ProtostuffObjectWrapper.class, 1);
-		registry.registerPojo(ActorClusterShareMessage.class, 2);
-		registry.registerPojo(ActorShare.class, 3);
-		registry.registerEnum(ClusterStatus.class, 4);
-		Config mappings = config.getConfig(mappingKey);
+		Config mappings = config.withFallback(loadProtobufConfig()).getConfig(mappingKey);
 		if (mappings == null) {
 			throw new RuntimeException("config " + mappingKey + " not found");
 		}
-		bufferSize = mappings.getInt("buffer-size");
+		bufferSize = config.getInt("akka.actor.protostuff.buffer-size");
+		ClassLoader loader = Thread.currentThread().getContextClassLoader();
 		mappings.entrySet().stream().forEach(e -> {
 			String key = e.getKey();
 			int id = mappings.getInt(key);
 			try {
-				Class<?> clazz = Class.forName(key);
+				Class<?> clazz = Class.forName(key, false, loader);
 				if (clazz.isEnum()) {
 					registry.registerEnum((Class<Enum>) clazz, id);
 				} else if (Map.class.isAssignableFrom(clazz)) {
@@ -107,4 +105,23 @@ public class ProtostuffSerialization extends JSerializer {
 		});
 	}
 
+	protected Config loadProtobufConfig() {
+		ClassLoader loader = Thread.currentThread().getContextClassLoader();
+		try {
+			Enumeration<URL> enumeration = loader.getResources("protostuff-mapping.conf");
+			Config config = null;
+			while (enumeration.hasMoreElements()) {
+				URL url = enumeration.nextElement();
+				logger.info("load protostuff config from {}", url);
+				if (config == null) {
+					config = ConfigFactory.parseURL(url);
+					continue;
+				}
+				config = config.withFallback(ConfigFactory.parseURL(url));
+			}
+			return config;
+		} catch (IOException e) {
+			throw new RuntimeException("load protostuff config error");
+		}
+	}
 }

@@ -1,44 +1,51 @@
 package org.appsugar.cluster.service.akka.system;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
+/**
+ * actor上下文
+ * @author NewYoung
+ * 2016年5月29日下午5:40:42
+ */
 public class ActorContext {
 
-	private ActorRef selfe;
-	private ActorRef system;
+	private ActorRef self;
+	private ActorSystem system;
 	private ActorRef sender;
 
+	public ActorContext(ActorRef self, ActorSystem system) {
+		super();
+		this.self = self;
+		this.system = system;
+	}
+
 	/**
-	 * 
-	 * @return 
+	 * 获取自己引用
 	 */
 	public ActorRef self() {
-		throw new UnsupportedOperationException();
+		return self;
 	}
 
 	/**
-	 * 
-	 * @return 
+	 * 获取发送者 
 	 */
 	public ActorRef sender() {
-		throw new UnsupportedOperationException();
+		return sender;
 	}
 
 	/**
-	 * 
-	 * @return 
+	 * 获取系统
 	 */
 	public ActorSystem system() {
-		throw new UnsupportedOperationException();
+		return system;
 	}
 
 	/**
-	 * 
-	 * @param s
-	 * @return 
+	 * 设置当前发送者
 	 */
 	public void sender(ActorRef s) {
-		throw new UnsupportedOperationException();
+		this.sender = s;
 	}
 
 }

@@ -13,6 +13,6 @@ public interface Service {
 	 * @param msg 消息
 	 * @param context 服务上下文
 	 */
-	Object handle(Object msg, ServiceContext context);
+	Object handle(Object msg, ServiceContext context) throws Exception;
 
 }

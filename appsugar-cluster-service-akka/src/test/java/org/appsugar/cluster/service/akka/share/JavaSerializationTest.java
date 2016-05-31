@@ -1,8 +1,6 @@
 package org.appsugar.cluster.service.akka.share;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
@@ -47,14 +45,9 @@ public class JavaSerializationTest extends TestCase implements Serializable {
 		JavaSerializationTest test = new JavaSerializationTest();
 		FSTConfiguration config = FSTConfiguration.getDefaultConfiguration();
 		long s = System.currentTimeMillis();
-		for (int i = 0; i < 1000000; i++) {
+		for (int i = 0; i < 10000000; i++) {
 			byte[] data = config.asByteArray(test);
-			config.asObject(data);
 		}
-		byte[] data = config.asByteArray(test);
-		FileOutputStream out = new FileOutputStream(dataFile);
-		out.write(data);
-		out.close();
 		System.out.println(System.currentTimeMillis() - s);
 	}
 
@@ -62,7 +55,6 @@ public class JavaSerializationTest extends TestCase implements Serializable {
 	public void testProtostuffSerialization() throws Exception {
 		JavaSerializationTest test = new JavaSerializationTest();
 		IdStrategy strategy = new IncrementalIdStrategy.Factory().create();
-		//RuntimeSchema.getSchema(TestObject.class, strategy);
 		Schema<JavaSerializationTest> schema = RuntimeSchema.getSchema(JavaSerializationTest.class);
 		LinkedBuffer buffer = LinkedBuffer.allocate(4096);
 		long s = System.currentTimeMillis();
@@ -70,24 +62,7 @@ public class JavaSerializationTest extends TestCase implements Serializable {
 			buffer.clear();
 			byte[] data = ProtostuffIOUtil.toByteArray(test, schema, buffer);
 		}
-		buffer.clear();
-		byte[] data = ProtostuffIOUtil.toByteArray(test, schema, buffer);
-		FileOutputStream out = new FileOutputStream(dataFile);
-		out.write(data);
-		out.close();
 		System.out.println(System.currentTimeMillis() - s);
-	}
-
-	@Test
-	public void testProtostuffDeserialization() throws Exception {
-		IdStrategy strategy = new IncrementalIdStrategy.Factory().create();
-		Schema<JavaSerializationTest> schema = RuntimeSchema.getSchema(JavaSerializationTest.class, strategy);
-		RuntimeSchema.getSchema(TestObject1.class, strategy);
-		RuntimeSchema.getSchema(TestObject.class, strategy);
-		LinkedBuffer buffer = LinkedBuffer.allocate(4096);
-		JavaSerializationTest n = schema.newMessage();
-		ProtostuffIOUtil.mergeFrom(new FileInputStream(dataFile), n, schema);
-		System.out.println(n.t + "   " + n.tt);
 	}
 
 }

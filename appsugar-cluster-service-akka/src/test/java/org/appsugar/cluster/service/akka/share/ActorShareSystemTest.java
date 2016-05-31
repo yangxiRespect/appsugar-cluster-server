@@ -36,7 +36,7 @@ public class ActorShareSystemTest extends TestCase {
 
 	@Test
 	public void testOnMultipleSystem() throws Exception {
-		int[] prots = { 0 };
+		int[] prots = { 2551, 0, 0 };
 		String systemName = "ClusterSystem";
 		Set<ActorSystem> systemSets = new HashSet<>();
 		for (int port : prots) {
@@ -51,7 +51,7 @@ public class ActorShareSystemTest extends TestCase {
 			shareSystem.share(ref1, "bbq").get();
 			systemSets.add(system);
 		}
-		Thread.sleep(116000);
+		Thread.sleep(6000);
 		systemSets.stream().forEach(s -> s.terminate());
 	}
 

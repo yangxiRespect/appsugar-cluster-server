@@ -5,7 +5,7 @@ package org.appsugar.cluster.service.api;
  * @author NewYoung
  * 2016年5月23日下午1:35:13
  */
-public interface Cancelable {
+public interface Cancellable {
 
 	/**
 	 * 取消执行的任务

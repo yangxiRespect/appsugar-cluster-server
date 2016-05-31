@@ -1,32 +1,32 @@
 package org.appsugar.cluster.service.akka.system;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
+/**
+ * actor处理上下文
+ * @author NewYoung
+ * 2016年5月29日下午5:36:49
+ */
 public interface ProcessorContext {
 
 	/**
-	 * 
-	 * @return 
+	 * 获取自己引用
 	 */
 	ActorRef getSelf();
 
 	/**
-	 * 
-	 * @return 
+	 * 获取发送者引用
 	 */
 	ActorRef getSender();
 
 	/**
-	 * 
-	 * @return 
+	 * 获取系统
 	 */
-	ActorRef getSystem();
+	ActorSystem getSystem();
 
 	/**
-	 * 
-	 * @param msg
-	 * @return 
+	 * 交由下一个处理器处理
 	 */
-	Object process(Object msg);
-
+	Object processNext(Object msg) throws Throwable;
 }

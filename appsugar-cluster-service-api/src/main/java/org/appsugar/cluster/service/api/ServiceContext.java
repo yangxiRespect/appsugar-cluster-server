@@ -34,7 +34,12 @@ public interface ServiceContext {
 	/**
 	 * 根据名称获取属性值 
 	 */
-	Object getAttribute(Object name);
+	<T> T getAttribute(Object name);
+
+	/**
+	 * 移除属性
+	 */
+	<T> T removeAttribute(Object name);
 
 	/**
 	 * 获取所有属性的map 

@@ -1,7 +1,5 @@
 package org.appsugar.cluster.service.api;
 
-import java.util.concurrent.CompletableFuture;
-
 /**
  * 服务集群系统
  * 可注册服务,搜索服务
@@ -29,13 +27,13 @@ public interface ServiceClusterSystem extends SubPubClusterSystem {
 	Iterable<ServiceClusterRef> services();
 
 	/**
-	 * 关闭当前集群服务系统
+	 * 关闭当前服务系统
 	 */
-	CompletableFuture<Void> terminate();
+	void terminate();
 
 	/**
 	 * 计划任务,每 time 毫秒调用一次 {@link ServiceRef#tell(msg, ServiceRef.NO_SENDER)}
 	 */
-	Cancelable schedule(ServiceRef serviceRef, long time, Object msg);
+	Cancellable schedule(ServiceRef serviceRef, long time, Object msg);
 
 }

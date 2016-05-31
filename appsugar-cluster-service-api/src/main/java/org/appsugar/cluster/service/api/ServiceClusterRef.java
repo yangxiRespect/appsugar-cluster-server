@@ -32,4 +32,10 @@ public interface ServiceClusterRef {
 	 */
 	ServiceRef balance();
 
+	/**
+	 *获取一个引用,当服务数为零时返回空
+	 *优先本地引用
+	 */
+	ServiceRef one();
+
 }

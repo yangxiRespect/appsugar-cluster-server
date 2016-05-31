@@ -13,7 +13,7 @@ public interface ServiceRef {
 	public static final ServiceRef NO_SENDER = null;
 
 	/**
-	 * {@link ServiceRef#ask(Object, int)} 
+	 * {@link ServiceRef#ask(Object, long)} 
 	 */
 	<T> T ask(Object msg);
 
@@ -22,10 +22,10 @@ public interface ServiceRef {
 	 * @param msg 发送给服务的消息
 	 * @param timeout 服务响应超时时间
 	 */
-	<T> T ask(Object msg, int timeout);
+	<T> T ask(Object msg, long timeout);
 
 	/**
-	 * {@link ServiceRef#ask(Object, Consumer, Consumer, int)} 
+	 * {@link ServiceRef#ask(Object, Consumer, Consumer, long)} 
 	 */
 	<T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error);
 
@@ -36,7 +36,7 @@ public interface ServiceRef {
 	 * @param error 服务器调用失败后返回的错误
 	 * @param timeout 超时时间
 	 */
-	<T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, int timeout);
+	<T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, long timeout);
 
 	/**
 	 * 给服务器发消息,线程不会阻塞.
@@ -69,6 +69,6 @@ public interface ServiceRef {
 	/**
 	 * 服务端口
 	 */
-	Optional<Integer> hostPort();
+	String hostPort();
 
 }

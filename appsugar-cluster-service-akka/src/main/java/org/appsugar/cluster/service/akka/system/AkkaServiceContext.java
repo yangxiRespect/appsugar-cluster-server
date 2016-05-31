@@ -1,51 +1,68 @@
 package org.appsugar.cluster.service.akka.system;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
-import org.appsugar.cluster.service.api.ServiceRef;
 
+/**
+ * akka服务上下文
+ * @author NewYoung
+ * 2016年5月29日下午2:40:59
+ */
 public class AkkaServiceContext implements ServiceContext {
 
 	private AkkaServiceRef self;
 	private AkkaServiceRef sender;
 	private AkkaServiceClusterSystem system;
+	private Map<Object, Object> attributes = new HashMap<>();
 
-	@Override
-	public ServiceRef self() {
-		// TODO Auto-generated method stub
-		return null;
+	public AkkaServiceContext(AkkaServiceRef self, AkkaServiceClusterSystem system) {
+		super();
+		this.self = self;
+		this.system = system;
 	}
 
 	@Override
-	public ServiceRef sender() {
-		// TODO Auto-generated method stub
-		return null;
+	public AkkaServiceRef self() {
+		return self;
 	}
 
 	@Override
-	public ServiceClusterSystem system() {
-		// TODO Auto-generated method stub
-		return null;
+	public AkkaServiceRef sender() {
+		return sender;
+	}
+
+	@Override
+	public AkkaServiceClusterSystem system() {
+		return system;
 	}
 
 	@Override
 	public void addAttribute(Object name, Object value) {
-		// TODO Auto-generated method stub
-
+		attributes.put(name, value);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public Object getAttribute(Object name) {
-		// TODO Auto-generated method stub
-		return null;
+	public <T> T getAttribute(Object name) {
+		return (T) attributes.get(name);
 	}
 
 	@Override
 	public Map<Object, Object> attributes() {
-		// TODO Auto-generated method stub
-		return null;
+		return Collections.unmodifiableMap(attributes);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T> T removeAttribute(Object name) {
+		return (T) attributes.remove(name);
+	}
+
+	protected void setSender(AkkaServiceRef sender) {
+		this.sender = sender;
 	}
 
 }
