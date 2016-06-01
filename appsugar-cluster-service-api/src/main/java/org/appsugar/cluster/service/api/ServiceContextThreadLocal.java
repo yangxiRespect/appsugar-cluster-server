@@ -1,4 +1,4 @@
-package org.appsugar.cluster.service.akka.system;
+package org.appsugar.cluster.service.api;
 
 /**
  * 服务上下文线程存储
@@ -7,19 +7,19 @@ package org.appsugar.cluster.service.akka.system;
  */
 public class ServiceContextThreadLocal {
 
-	private static ThreadLocal<AkkaServiceContext> local = new ThreadLocal<>();
+	private static ThreadLocal<ServiceContext> local = new ThreadLocal<>();
 
 	/**
 	 * 获取服务 
 	 */
-	public static AkkaServiceContext context() {
+	public static ServiceContext context() {
 		return local.get();
 	}
 
 	/**
 	 * 设置服务
 	 */
-	protected static void context(AkkaServiceContext ctx) {
+	public static void context(ServiceContext ctx) {
 		if (ctx == null) {
 			local.remove();
 			return;

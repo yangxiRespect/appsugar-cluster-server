@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.akka.system;
 
 import org.appsugar.cluster.service.api.Service;
+import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 
 /**
  * 服务调用处理器,把所有消息交给service处理

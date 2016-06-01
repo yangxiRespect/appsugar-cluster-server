@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 import org.appsugar.cluster.service.api.ServiceRef;
 
 import akka.actor.ActorRef;
@@ -76,7 +77,7 @@ public class AkkaServiceRef implements ServiceRef {
 			success.accept(r);
 		});
 		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
-		AkkaServiceContext context = ServiceContextThreadLocal.context();
+		AkkaServiceContext context = (AkkaServiceContext) ServiceContextThreadLocal.context();
 		ActorRef sender = askPatternRef;
 		if (context != null) {
 			//如果在服务执行上下文中, 那么该请求转发至该服务中处理

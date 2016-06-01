@@ -42,4 +42,13 @@ public interface ServiceClusterSystem extends SubPubClusterSystem {
 	 */
 	void stop(Service service);
 
+	/**
+	 * 添加服务状态监听器
+	 */
+	boolean addServiceStatusListener(ServiceStatusListener listener);
+
+	/**
+	 * 移除服务状态监听器
+	 */
+	boolean removeServiceStatusListener(ServiceStatusListener listener);
 }

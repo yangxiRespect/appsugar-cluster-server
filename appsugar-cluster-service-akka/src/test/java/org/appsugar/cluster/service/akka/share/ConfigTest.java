@@ -15,5 +15,6 @@ public class ConfigTest extends TestCase {
 		Config protostuffConfig = ConfigFactory.load("protostuff-mapping.conf");
 		Config c = protostuffConfig.withFallback(defaultConfig);
 		System.out.println(c);
+		System.out.println(ConfigTest.class.getName().hashCode());
 	}
 }
