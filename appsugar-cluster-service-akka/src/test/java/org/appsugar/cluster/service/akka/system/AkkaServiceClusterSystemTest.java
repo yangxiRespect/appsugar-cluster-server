@@ -23,7 +23,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 
 	@Test
 	public void testSingleSystem() throws Exception {
-		ServiceClusterSystem system = new AkkaServiceClusterSystem("system", ConfigFactory.load("application.conf"));
+		ServiceClusterSystem system = new AkkaServiceClusterSystem("system", ConfigFactory.load());
 		Service service = new SayHelloService();
 		ServiceRef serviceRef = system.serviceFor(service, "hello");
 		String msg = serviceRef.ask("xx");
@@ -56,13 +56,13 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 	@Test
 	public void testMultipleSystem() throws Exception {
 		//初始化五个
-		int[] prots = { 2551, 0, 0, 0, 0 };
+		int[] prots = { 2551, 0, 0 };
 		String systemName = "ClusterSystem";
 		List<ServiceClusterSystem> systemList = new ArrayList<ServiceClusterSystem>();
 		ServiceClusterSystem first = null;
 		for (int port : prots) {
 			Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)
-					.withFallback(ConfigFactory.load("application.conf"));
+					.withFallback(ConfigFactory.load());
 			ServiceClusterSystem system = new AkkaServiceClusterSystem(systemName, config);
 			if (first == null) {
 				first = system;

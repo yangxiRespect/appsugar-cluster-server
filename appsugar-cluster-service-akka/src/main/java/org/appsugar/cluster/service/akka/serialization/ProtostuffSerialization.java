@@ -1,9 +1,6 @@
 package org.appsugar.cluster.service.akka.serialization;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -106,22 +103,6 @@ public class ProtostuffSerialization extends JSerializer {
 	}
 
 	protected Config loadProtobufConfig() {
-		ClassLoader loader = Thread.currentThread().getContextClassLoader();
-		try {
-			Enumeration<URL> enumeration = loader.getResources("protostuff-mapping.conf");
-			Config config = null;
-			while (enumeration.hasMoreElements()) {
-				URL url = enumeration.nextElement();
-				logger.info("load protostuff config from {}", url);
-				if (config == null) {
-					config = ConfigFactory.parseURL(url);
-					continue;
-				}
-				config = config.withFallback(ConfigFactory.parseURL(url));
-			}
-			return config;
-		} catch (IOException e) {
-			throw new RuntimeException("load protostuff config error");
-		}
+		return ConfigFactory.load("protostuff.conf");
 	}
 }
