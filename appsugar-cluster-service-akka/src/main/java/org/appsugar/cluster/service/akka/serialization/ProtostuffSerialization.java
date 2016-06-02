@@ -12,6 +12,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ExtendedActorSystem;
 import akka.serialization.JSerializer;
 import io.protostuff.CollectionSchema;
+import io.protostuff.GraphIOUtil;
 import io.protostuff.LinkedBuffer;
 import io.protostuff.MapSchema;
 import io.protostuff.ProtostuffIOUtil;
@@ -31,14 +32,22 @@ public class ProtostuffSerialization extends JSerializer {
 	public static final int identifier = 10001;
 	protected IdStrategy idStrategy;
 	private static final Logger logger = LoggerFactory.getLogger(ProtostuffSerialization.class);
-	private static final String mappingKey = "akka.actor.protostuff.mappings";
+	private static final String protostuffPath = "akka.actor.protostuff";
+	private static final String mappingKey = protostuffPath + ".mappings";
+	private static final String buffSizeKey = protostuffPath + ".buffer-size";
+	private static final String serializationType = protostuffPath + ".type";
+
 	private int bufferSize = 4096;
+	private String type = "graph";
+	private ProtostuffSerializer serializer;
 
 	public ProtostuffSerialization(ExtendedActorSystem system) {
 		super();
+		Config config = system.settings().config();
 		logger.debug("dynamic pre defien schema start");
-		registerClass(system.settings().config());
+		registerClass(config);
 		logger.debug("dynamic pre defien schema end");
+		initConfig(config);
 	}
 
 	@Override
@@ -48,39 +57,27 @@ public class ProtostuffSerialization extends JSerializer {
 
 	@Override
 	public boolean includeManifest() {
-		//为了网络传输速度
 		return false;
 	}
 
 	@Override
 	public byte[] toBinary(Object msg) {
-		//TODO bad performance
-		LinkedBuffer buffer = LinkedBuffer.allocate(bufferSize);
-		Schema<ProtostuffObjectWrapper> schema = RuntimeSchema.getSchema(ProtostuffObjectWrapper.class, idStrategy);
-		try {
-			return ProtostuffIOUtil.toByteArray(new ProtostuffObjectWrapper(msg), schema, buffer);
-		} finally {
-			buffer.clear();
-		}
+		return serializer.toBinary(msg);
 	}
 
 	@Override
 	public Object fromBinaryJava(byte[] data, Class<?> clazz) {
-		Schema<ProtostuffObjectWrapper> schema = RuntimeSchema.getSchema(ProtostuffObjectWrapper.class, idStrategy);
-		ProtostuffObjectWrapper wrapper = schema.newMessage();
-		ProtostuffIOUtil.mergeFrom(data, wrapper, schema);
-		return wrapper.getObject();
+		return serializer.fromBinary(data);
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected void registerClass(Config config) {
 		Registry registry = new ExplicitIdStrategy.Registry();
 		idStrategy = registry.strategy;
-		Config mappings = config.withFallback(loadProtobufConfig()).getConfig(mappingKey);
+		Config mappings = config.withFallback(ConfigFactory.load("protostuff.conf")).getConfig(mappingKey);
 		if (mappings == null) {
 			throw new RuntimeException("config " + mappingKey + " not found");
 		}
-		bufferSize = config.getInt("akka.actor.protostuff.buffer-size");
 		ClassLoader loader = Thread.currentThread().getContextClassLoader();
 		mappings.entrySet().stream().forEach(e -> {
 			String key = e.getKey();
@@ -102,7 +99,83 @@ public class ProtostuffSerialization extends JSerializer {
 		});
 	}
 
-	protected Config loadProtobufConfig() {
-		return ConfigFactory.load("protostuff.conf");
+	protected void initConfig(Config config) {
+		LinkedBuffer buffer = null;
+		if (config.hasPath(buffSizeKey)) {
+			bufferSize = config.getInt(buffSizeKey);
+		}
+		if (config.hasPath(serializationType)) {
+			type = config.getString(serializationType);
+		}
+		buffer = LinkedBuffer.allocate(bufferSize);
+		Schema<ProtostuffObjectWrapper> schema = RuntimeSchema.getSchema(ProtostuffObjectWrapper.class, idStrategy);
+		if ("graph".equals(type)) {
+			serializer = new GraphProtostuffSerializer(buffer, schema);
+		} else {
+			serializer = new DefautlProtostuffSerializer(buffer, schema);
+		}
+	}
+
+	static abstract class ProtostuffSerializer {
+		protected LinkedBuffer buffer;
+		protected Schema<ProtostuffObjectWrapper> schema;
+
+		public ProtostuffSerializer(LinkedBuffer buffer, Schema<ProtostuffObjectWrapper> schema) {
+			super();
+			this.buffer = buffer;
+			this.schema = schema;
+		}
+
+		public abstract byte[] toBinary(Object msg);
+
+		public abstract Object fromBinary(byte[] data);
+	}
+
+	static class DefautlProtostuffSerializer extends ProtostuffSerializer {
+
+		public DefautlProtostuffSerializer(LinkedBuffer buffer, Schema<ProtostuffObjectWrapper> schema) {
+			super(buffer, schema);
+		}
+
+		@Override
+		public byte[] toBinary(Object msg) {
+			try {
+				return ProtostuffIOUtil.toByteArray(new ProtostuffObjectWrapper(msg), schema, buffer);
+			} finally {
+				buffer.clear();
+			}
+		}
+
+		@Override
+		public Object fromBinary(byte[] data) {
+			ProtostuffObjectWrapper wrapper = schema.newMessage();
+			ProtostuffIOUtil.mergeFrom(data, wrapper, schema);
+			return wrapper.getObject();
+		}
+
+	}
+
+	static class GraphProtostuffSerializer extends ProtostuffSerializer {
+
+		public GraphProtostuffSerializer(LinkedBuffer buffer, Schema<ProtostuffObjectWrapper> schema) {
+			super(buffer, schema);
+		}
+
+		@Override
+		public byte[] toBinary(Object msg) {
+			try {
+				return GraphIOUtil.toByteArray(new ProtostuffObjectWrapper(msg), schema, buffer);
+			} finally {
+				buffer.clear();
+			}
+		}
+
+		@Override
+		public Object fromBinary(byte[] data) {
+			ProtostuffObjectWrapper wrapper = schema.newMessage();
+			GraphIOUtil.mergeFrom(data, wrapper, schema);
+			return wrapper.getObject();
+		}
+
 	}
 }
