@@ -17,7 +17,6 @@ public class FstSerialization extends JSerializer {
 
 	public FstSerialization() {
 		super();
-		System.out.println("狗日滴,创建了一个");
 	}
 
 	@Override

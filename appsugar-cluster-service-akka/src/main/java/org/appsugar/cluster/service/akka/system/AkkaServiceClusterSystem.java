@@ -121,7 +121,6 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 			if (localServices.containsKey(service)) {
 				throw new RuntimeException("service already register " + "name " + name);
 			}
-
 			MessageProcessorChain chain = new MessageProcessorChain(new AskPatternMessageProcessor(),
 					new ServiceInvokeProcessor(service, this));
 			//创建一个service actor TODO 减少actor名称长度, 
