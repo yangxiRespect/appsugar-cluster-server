@@ -41,6 +41,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
 	private Map<Service, AkkaServiceRef> localServices = new ConcurrentHashMap<>();
+	private Map<AkkaServiceRef, Service> refMapService = new ConcurrentHashMap<>();
 	private Map<String, AkkaServiceClusterRef> serviceClusterRefs = new ConcurrentHashMap<>();
 	private Map<ActorRef, AkkaServiceRef> actorRefMapping = new ConcurrentHashMap<>();
 	private Set<ServiceStatusListener> serviceStatusListenerSet = new CopyOnWriteArraySet<>();
@@ -130,6 +131,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 				actorShareSystem.share(ref, name).get();
 				AkkaServiceRef result = actorRefMapping.get(ref);
 				localServices.put(service, result);
+				refMapService.put(result, service);
 				return result;
 			} catch (Exception ex) {
 				throw new RuntimeException(ex);
@@ -162,11 +164,13 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	}
 
 	@Override
-	public void stop(Service service) {
-		AkkaServiceRef ref = localServices.remove(service);
+	public void stop(ServiceRef serviceRef) {
+		AkkaServiceRef ref = (AkkaServiceRef) serviceRef;
 		if (ref == null) {
 			return;
 		}
+		Service service = refMapService.remove(serviceRef);
+		localServices.remove(service);
 		system.stop(ref.destination());
 	}
 

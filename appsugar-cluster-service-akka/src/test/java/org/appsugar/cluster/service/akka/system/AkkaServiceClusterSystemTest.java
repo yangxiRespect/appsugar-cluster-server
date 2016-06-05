@@ -35,7 +35,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		String msg3 = clusterRef.random().ask("1");
 		logger.debug(" cluster Ref balance {} random {} ", msg2, msg3);
 		Assert.assertEquals(clusterRef.size(), 2);
-		system.stop(service);
+		system.stop(serviceRef);
 		Thread.sleep(1000);
 		Assert.assertEquals(clusterRef.size(), 1);
 	}

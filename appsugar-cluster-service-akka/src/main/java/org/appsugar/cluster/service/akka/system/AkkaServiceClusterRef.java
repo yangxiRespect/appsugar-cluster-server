@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceRef;
@@ -22,7 +21,7 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 
 	private Random random = new Random();
 
-	private AtomicInteger balanceSeed = new AtomicInteger(1);
+	private int balanceSeed = 0;
 
 	private String name;
 
@@ -64,9 +63,8 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 		if (serviceRefList.isEmpty()) {
 			return null;
 		}
-		int seed = balanceSeed.getAndIncrement();
 		try {
-			return serviceRefList.get(seed % serviceRefList.size());
+			return serviceRefList.get(balanceSeed++ % serviceRefList.size());
 		} catch (IndexOutOfBoundsException e) {
 			return balance();
 		}

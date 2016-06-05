@@ -38,9 +38,9 @@ public interface ServiceClusterSystem extends SubPubClusterSystem {
 
 	/**
 	 * 停止服务
-	 * @param service
+	 * @param serviceRef
 	 */
-	void stop(Service service);
+	void stop(ServiceRef serviceRef);
 
 	/**
 	 * 添加服务状态监听器

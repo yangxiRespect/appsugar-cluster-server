@@ -81,3 +81,10 @@ project(":appsugar-cluster-service-akka"){
 		
 	}
 }
+
+project(":appsugar-cluster-service-binding"){
+	dependencies{
+		compile project(":appsugar-cluster-service-api")
+		compile project(":appsugar-cluster-service-akka")
+	}
+}

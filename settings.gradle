@@ -2,4 +2,5 @@ rootProject.name = "appsugar-cluster-service";
 
 include("appsugar-cluster-service-api")
 include("appsugar-cluster-service-akka")
+include("appsugar-cluster-service-binding")
 

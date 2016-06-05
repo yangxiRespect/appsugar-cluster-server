@@ -69,6 +69,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 		ActorRef destination = event.getDestination();
 		AskPatternRequest request = new AskPatternRequest(sequence, event.getMsg());
 		destination.tell(request, ctx.getSelf());
+		//发起请求后,检测是否需要触发定时任务
 		scheduleIfNecessary(ctx);
 	}
 
