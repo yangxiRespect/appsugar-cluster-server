@@ -27,18 +27,22 @@ public class ServiceStatusHelper {
 	 * 如果服务完全满足,那么调用该方法
 	 * 调用方法后返回true,其他返回false
 	 */
-	public void tryInvoke(Object serviceInterface, Status s) throws Exception {
+	public void tryInvoke(DistributionRPCSystem system, Status s) throws Exception {
 		if (status.equals(s)) {
 			//状态未改变
 			return;
 		}
 		//改变服务状态
 		status = Status.ACTIVE.equals(s) ? Status.INACTIVE : Status.ACTIVE;
-		methodInvoker.invoke(new Object[] { serviceInterface, status });
+		methodInvoker.invoke(new Object[] { system.serviceOf(interfaceClass), status });
 	}
 
 	public Class<?> getInterfaceClass() {
 		return interfaceClass;
+	}
+
+	public Method getMethod() {
+		return methodInvoker.getMethod();
 	}
 
 	@Override

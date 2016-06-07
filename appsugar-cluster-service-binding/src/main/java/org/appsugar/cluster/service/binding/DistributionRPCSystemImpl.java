@@ -113,4 +113,13 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		}
 	}
 
+	@Override
+	public void terminate() {
+		system.terminate();
+		serviceRefs.clear();
+		serviceListeners.clear();
+		proxyCache.clear();
+		serviceStatus.clear();
+	}
+
 }

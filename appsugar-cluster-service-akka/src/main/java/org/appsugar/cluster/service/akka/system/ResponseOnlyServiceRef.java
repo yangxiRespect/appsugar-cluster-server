@@ -12,7 +12,7 @@ import akka.actor.ActorRef;
  */
 public class ResponseOnlyServiceRef extends AkkaServiceRef {
 
-	private static final String ERROR = " response only service ref ,do not support ask";
+	private static final String ERROR = " response only service ref ,do not support ask pattern";
 
 	public ResponseOnlyServiceRef(ActorRef destination, String name) {
 		super(destination, name);

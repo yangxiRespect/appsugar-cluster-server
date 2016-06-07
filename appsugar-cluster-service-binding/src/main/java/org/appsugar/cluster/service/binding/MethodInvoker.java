@@ -11,10 +11,12 @@ public class MethodInvoker {
 
 	private Object target;
 	private Method method;
+	private Class<?>[] parameterTypes;
 
 	public MethodInvoker(Method method, Object target) {
 		this.target = target;
 		this.method = method;
+		this.parameterTypes = method.getParameterTypes();
 	}
 
 	/**
@@ -30,6 +32,10 @@ public class MethodInvoker {
 
 	public Method getMethod() {
 		return method;
+	}
+
+	public Class<?>[] getParameterTypes() {
+		return parameterTypes;
 	}
 
 	@Override

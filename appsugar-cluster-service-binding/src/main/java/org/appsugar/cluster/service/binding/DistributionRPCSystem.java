@@ -39,4 +39,6 @@ public interface DistributionRPCSystem {
 	 */
 	void stop(String name);
 
+	void terminate();
+
 }
