@@ -2,8 +2,10 @@ package org.appsugar.cluster.service.akka.system;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.appsugar.cluster.service.api.FutureMessage;
 import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 import org.appsugar.cluster.service.api.ServiceRef;
 
@@ -68,21 +70,34 @@ public class AkkaServiceRef implements ServiceRef {
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
-		CompletableFuture<T> future = new CompletableFuture<T>();
-		future.whenComplete((r, e) -> {
+		BiConsumer<T, Throwable> consumer = (r, e) -> {
 			if (e != null) {
 				error.accept(e);
 				return;
 			}
 			success.accept(r);
-		});
-		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
+		};
 		AkkaServiceContext context = (AkkaServiceContext) ServiceContextThreadLocal.context();
 		ActorRef sender = askPatternRef;
 		if (context != null) {
 			//如果在服务执行上下文中, 那么该请求转发至该服务中处理
 			sender = context.self().destination;
+			//处理非同一系统请求
+			if (!sender.path().address().system().equals(destination.path().address().system())) {
+				CompletableFuture<T> middleware = new CompletableFuture<>();
+				middleware.whenComplete((r, e) -> {
+					//把结果转发到context.self
+					ActorRef self = context.self().destination;
+					self.tell(new FutureMessage<T>(r, e, consumer), destination);
+				});
+				//把消息交由askPatterRef去请求.
+				askPatternRef.tell(new AskPatternEvent<>(msg, middleware, timeout, destination), ActorRef.noSender());
+				return;
+			}
 		}
+		CompletableFuture<T> future = new CompletableFuture<T>();
+		future.whenComplete(consumer);
+		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
 		sender.tell(event, ActorRef.noSender());
 	}
 

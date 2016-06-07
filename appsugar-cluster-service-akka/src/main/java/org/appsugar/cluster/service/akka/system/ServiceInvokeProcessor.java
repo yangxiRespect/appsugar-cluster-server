@@ -12,29 +12,15 @@ import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 public class ServiceInvokeProcessor implements MessageProcessor {
 
 	private Service service;
-	private AkkaServiceContext ctx;
-	private AkkaServiceClusterSystem system;
 
-	public ServiceInvokeProcessor(Service service, AkkaServiceClusterSystem system) {
+	public ServiceInvokeProcessor(Service service) {
 		super();
 		this.service = service;
-		this.system = system;
 	}
 
 	@Override
 	public Object process(ProcessorContext pctx, Object msg) throws Exception {
-		if (ctx == null) {
-			ctx = new AkkaServiceContext(system.resolveRef(pctx.getSelf()), system);
-		}
-		try {
-			ctx.setSender(system.resolveRef(pctx.getSender()));
-			//把当前上下文绑定到线程中, 等执行完后再清除
-			ServiceContextThreadLocal.context(ctx);
-			return service.handle(msg, ctx);
-		} finally {
-			ctx.setSender(null);
-			ServiceContextThreadLocal.context(null);
-		}
+		return service.handle(msg, ServiceContextThreadLocal.context());
 	}
 
 }

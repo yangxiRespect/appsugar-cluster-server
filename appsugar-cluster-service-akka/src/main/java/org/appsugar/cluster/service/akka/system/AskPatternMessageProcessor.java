@@ -1,9 +1,8 @@
 package org.appsugar.cluster.service.akka.system;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -28,7 +27,8 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	private static final Logger logger = LoggerFactory.getLogger(AskPatternMessageProcessor.class);
 	private static final RepeatEvent repeatEvent = new RepeatEvent();
 	private static final int repeatEventIdleMaxTimes = 10;
-	private Map<Integer, RequestMarker<?>> markers = new HashMap<>();
+	//TODO One destination per markerList
+	private List<RequestMarker<?>> markerList = new LinkedList<>();
 
 	//可以做性能极致优化,针对每一个目的地存储一个序列,序列控制在0~65535 减少网络传输
 	private Integer requestSequence = 0;
@@ -64,11 +64,12 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 		long startTime = System.currentTimeMillis();
 		long endTime = startTime + event.getTimeout();
 		int sequence = requestSequence++;
-		RequestMarker<?> marker = new RequestMarker<>(startTime, endTime, event.getFuture());
-		markers.put(sequence, marker);
+
 		ActorRef destination = event.getDestination();
 		AskPatternRequest request = new AskPatternRequest(sequence, event.getMsg());
 		destination.tell(request, ctx.getSelf());
+		RequestMarker<?> marker = new RequestMarker<>(sequence, startTime, endTime, event.getFuture());
+		markerList.add(marker);
 		//发起请求后,检测是否需要触发定时任务
 		scheduleIfNecessary(ctx);
 	}
@@ -97,6 +98,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 			//执行过程中出现了异常把异常返回
 			response(sequence, e, sender, ctx.getSelf());
 		}
+
 	}
 
 	/**
@@ -105,7 +107,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	protected void processResponse(AskPatternResponse res, ProcessorContext ctx) {
 		int sequence = res.getSequence();
 		Object data = res.getData();
-		RequestMarker<?> marker = markers.remove(sequence);
+		RequestMarker<?> marker = removeRequestMarkerBySequence(sequence);
 		if (marker == null) {
 			//TODO 设置日志是否打印
 			logger.warn("Can't process response  because request has timeout sequence {} destination {}", sequence,
@@ -125,7 +127,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	 * 处理系统重复消息
 	 */
 	protected void processRepeatEvent(RepeatEvent event, ProcessorContext ctx) {
-		if (markers.isEmpty()) {
+		if (markerList.isEmpty()) {
 			if (cancellable == null) {
 				return;
 			}
@@ -141,15 +143,14 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 			return;
 		}
 		long current = System.currentTimeMillis();
-		for (Iterator<Entry<Integer, RequestMarker<?>>> it = markers.entrySet().iterator(); it.hasNext();) {
-			Entry<Integer, RequestMarker<?>> entry = it.next();
-			RequestMarker<?> marker = entry.getValue();
-			if (marker.getEndTime() < current) {
+		for (Iterator<RequestMarker<?>> it = markerList.iterator(); it.hasNext();) {
+			RequestMarker<?> marker = it.next();
+			if (marker.getEndTime() > current) {
 				continue;
 			}
 			it.remove();
 			marker.getFuture().completeExceptionally(new TimeoutException(
-					"request time out sequence " + entry.getKey() + " start at" + marker.getStartTime()));
+					"request time out sequence " + marker.getSequence() + " start at" + marker.getStartTime()));
 		}
 	}
 
@@ -198,6 +199,17 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 		Scheduler scheduler = ctx.getSystem().scheduler();
 		ActorRef self = ctx.getSelf();
 		cancellable = scheduler.schedule(Duration.create(100, TimeUnit.MILLISECONDS),
-				Duration.create(100, TimeUnit.MILLISECONDS), self, repeatEvent, ctx.getSystem().dispatcher(), null);
+				Duration.create(1000, TimeUnit.MILLISECONDS), self, repeatEvent, ctx.getSystem().dispatcher(), null);
+	}
+
+	private RequestMarker<?> removeRequestMarkerBySequence(int sequence) {
+		for (Iterator<RequestMarker<?>> it = markerList.iterator(); it.hasNext();) {
+			RequestMarker<?> marker = it.next();
+			if (marker.getSequence() == sequence) {
+				it.remove();
+				return marker;
+			}
+		}
+		return null;
 	}
 }

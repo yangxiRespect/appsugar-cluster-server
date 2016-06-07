@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.binding;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,7 @@ import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.binding.annotation.ExecuteRepeat;
 import org.appsugar.cluster.service.binding.annotation.Service;
 
-/**
+/**TODO 支持对象父类里的方法
  * 远程调用帮助类
  * @author NewYoung
  * 2016年6月3日上午7:15:11
@@ -45,12 +46,18 @@ public class RPCSystemUtil {
 	}
 
 	/**
-	 * 查找该类中注解为ExecuteDefault无参数的方法(不包含父类)
+	 * 查找该类中注解为ExecuteDefault无参数的方法
 	 */
 	public static final List<Method> getDefaultMethod(Object target) {
-		return Arrays.asList(target.getClass().getMethods()).stream()
-				.filter(m -> m.isAnnotationPresent(ExecuteDefault.class) && m.getParameterCount() == 0)
-				.collect(Collectors.toList());
+		Class<?> clazz = target.getClass();
+		List<Method> result = new ArrayList<>();
+		do {
+			result.addAll(Arrays.asList(clazz.getMethods()).stream()
+					.filter(m -> m.isAnnotationPresent(ExecuteDefault.class) && m.getParameterCount() == 0)
+					.collect(Collectors.toList()));
+			clazz = clazz.getSuperclass();
+		} while (clazz != null);
+		return result;
 	}
 
 	public static final List<RepeatInvoker> getRepeatInvoker(Map<Class<?>, ?> serves) {
@@ -65,9 +72,15 @@ public class RPCSystemUtil {
 	 * 获取该对象所有注解为ExecuteRepeat无参方法
 	 */
 	public static final List<Method> getRepeatMethods(Object target) {
-		return Arrays.asList(target.getClass().getMethods()).stream()
-				.filter(m -> m.isAnnotationPresent(ExecuteRepeat.class) && m.getParameterCount() == 0)
-				.collect(Collectors.toList());
+		Class<?> clazz = target.getClass();
+		List<Method> result = new ArrayList<>();
+		do {
+			result.addAll(Arrays.asList(clazz.getMethods()).stream()
+					.filter(m -> m.isAnnotationPresent(ExecuteRepeat.class) && m.getParameterCount() == 0)
+					.collect(Collectors.toList()));
+			clazz = clazz.getSuperclass();
+		} while (clazz != null);
+		return result;
 	}
 
 	/**
@@ -84,12 +97,20 @@ public class RPCSystemUtil {
 	}
 
 	/**
-	 * 查找该类中注解为ExecuteOnEvent并且只有一个参数的方法(不包含父类)
+	 * 查找该类中注解为ExecuteOnEvent并且只有一个参数的方法
 	 */
 	public static final Map<String, List<Method>> getEventMethods(Object target) {
-		return Arrays.asList(target.getClass().getMethods()).stream()
-				.filter(m -> m.isAnnotationPresent(ExecuteOnEvent.class) && m.getParameterCount() == 1)
-				.collect(Collectors.groupingBy(m -> m.getAnnotation(ExecuteOnEvent.class).value()));
+		List<KeyValue<String, Method>> defaultMethods = new ArrayList<>();
+		Class<?> clazz = target.getClass();
+		do {
+			defaultMethods.addAll(Arrays.asList(clazz.getMethods()).stream()
+					.filter(m -> m.isAnnotationPresent(ExecuteOnEvent.class) && m.getParameterCount() == 1)
+					.map(e -> new KeyValue<>(e.getAnnotation(ExecuteOnEvent.class).value(), e))
+					.collect(Collectors.toList()));
+			clazz = clazz.getSuperclass();
+		} while (clazz != null);
+		return defaultMethods.stream().collect(
+				Collectors.groupingBy(e -> e.getKey(), Collectors.mapping(e -> e.getValue(), Collectors.toList())));
 	}
 
 	/**
@@ -105,13 +126,24 @@ public class RPCSystemUtil {
 	}
 
 	/**
-	 * 获取该类中注解为ExecuteOnServiceReady并且无参的方法(不包含父类)
+	 * 获取该类中注解为ExecuteOnServiceReady并且无参的方法
 	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static final Map<Class<?>, Method> getServiceReadyMethods(Object target) {
-		return Arrays.asList(target.getClass().getMethods()).stream()
-				.filter(m -> m.isAnnotationPresent(ExecuteOnServiceReady.class) && Arrays.equals(m.getParameterTypes(),
-						new Class[] { m.getAnnotation(ExecuteOnServiceReady.class).value(), Status.class }))
-				.collect(Collectors.toMap(m -> m.getAnnotation(ExecuteOnServiceReady.class).value(), m -> m));
+		Class<?> clazz = target.getClass();
+		List<KeyValue<Class<?>, Method>> serviceReadyMethods = new ArrayList<>();
+		do {
+			serviceReadyMethods
+					.addAll((List) Arrays.asList(clazz.getMethods()).stream()
+							.filter(m -> m.isAnnotationPresent(ExecuteOnServiceReady.class)
+									&& Arrays.equals(m.getParameterTypes(),
+											new Class[] { m.getAnnotation(ExecuteOnServiceReady.class).value(),
+													Status.class }))
+							.map(m -> new KeyValue<>(m.getAnnotation(ExecuteOnServiceReady.class).value(), m))
+							.collect(Collectors.toList()));
+			clazz = clazz.getSuperclass();
+		} while (clazz != null);
+		return serviceReadyMethods.stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 	}
 
 	/**

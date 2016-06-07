@@ -26,7 +26,6 @@ public class ActorShare implements Serializable {
 	public ActorShare(String name) {
 		super();
 		this.name = name;
-		this.actorRef = actorRef;
 	}
 
 	public ActorShare() {

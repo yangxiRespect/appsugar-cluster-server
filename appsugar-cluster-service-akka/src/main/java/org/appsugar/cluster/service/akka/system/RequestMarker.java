@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class RequestMarker<T> {
 
+	private int sequence;
 	//请求开始时间
 	private long startTime;
 	//超时时间点
@@ -16,8 +17,9 @@ public class RequestMarker<T> {
 	//回调future
 	private CompletableFuture<T> future;
 
-	public RequestMarker(long startTime, long endTime, CompletableFuture<T> future) {
+	public RequestMarker(int sequence, long startTime, long endTime, CompletableFuture<T> future) {
 		super();
+		this.sequence = sequence;
 		this.startTime = startTime;
 		this.endTime = endTime;
 		this.future = future;
@@ -47,11 +49,19 @@ public class RequestMarker<T> {
 		this.future = future;
 	}
 
+	public int getSequence() {
+		return sequence;
+	}
+
+	public void setSequence(int sequence) {
+		this.sequence = sequence;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("RequestMarker [startTime=").append(startTime).append(", endTime=").append(endTime)
-				.append(", future=").append(future).append("]");
+		builder.append("RequestMarker [sequence=").append(sequence).append(", startTime=").append(startTime)
+				.append(", endTime=").append(endTime).append(", future=").append(future).append("]");
 		return builder.toString();
 	}
 
