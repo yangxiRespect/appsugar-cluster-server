@@ -65,4 +65,12 @@ public class AkkaServiceContext implements ServiceContext {
 		this.sender = sender;
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("AkkaServiceContext [self=").append(self).append(", sender=").append(sender)
+				.append(", attributes=").append(attributes).append("]");
+		return builder.toString();
+	}
+
 }

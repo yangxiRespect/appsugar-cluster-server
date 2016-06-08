@@ -94,6 +94,15 @@ public class AkkaServiceRef implements ServiceRef {
 				askPatternRef.tell(new AskPatternEvent<>(msg, middleware, timeout, destination), ActorRef.noSender());
 				return;
 			}
+			//解决多次tell性能问题
+			CompletableFuture<T> future = new CompletableFuture<T>();
+			future.whenComplete(consumer);
+			ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
+			try {
+				pctx.processNext(new AskPatternEvent<>(msg, future, timeout, destination));
+			} catch (Throwable e1) {
+			}
+			return;
 		}
 		CompletableFuture<T> future = new CompletableFuture<T>();
 		future.whenComplete(consumer);

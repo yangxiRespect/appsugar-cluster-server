@@ -46,4 +46,5 @@ public class AkkaProcessorContext implements ProcessorContext {
 	void setNext(AkkaProcessorContext next) {
 		this.next = next;
 	}
+
 }
