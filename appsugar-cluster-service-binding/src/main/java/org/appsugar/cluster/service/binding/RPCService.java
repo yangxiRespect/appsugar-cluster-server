@@ -1,9 +1,9 @@
 package org.appsugar.cluster.service.binding;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.appsugar.cluster.service.akka.system.AskPatternException;
 import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
@@ -21,11 +21,14 @@ public class RPCService implements Service {
 	private static final Logger logger = LoggerFactory.getLogger(RPCService.class);
 	private ServiceClusterSystem system;
 	private DistributionRPCSystemImpl rpcSystem;
-	private Map<Integer, ClassMethodHelper> targetMap;
+	private Map<MethodInvoker, Integer> sequenceMap = new HashMap<>();
+	private Map<Integer, MethodInvoker> optimizingMethodInvokerMap = new HashMap<>();
+	private Map<List<String>, MethodInvoker> methodInvokerMap;
 	private Map<String, List<ServiceStatusHelper>> serviceReadyInvokerMap;
 	private Map<String, List<MethodInvoker>> eventInvokerMap;
 	private List<RepeatInvoker> repeatInvokers;
 	private Map<Class<?>, ?> serves;
+	private int sequence = 0;
 	private boolean needInit = false;
 
 	public RPCService(ServiceClusterSystem system, DistributionRPCSystemImpl rpcSystem, Map<Class<?>, ?> serves) {
@@ -38,6 +41,9 @@ public class RPCService implements Service {
 	@Override
 	public Object handle(Object msg, ServiceContext context) throws Exception {
 		initIfNecessary(context);
+		if (msg instanceof MethodInvokeOptimizingMessage) {
+			return processMethodInvokeOptimizingMessage((MethodInvokeOptimizingMessage) msg);
+		}
 		//处理服务状态改变消息
 		if (msg instanceof ServiceStatusMessage) {
 			processServiceStatusMessage((ServiceStatusMessage) msg);
@@ -120,11 +126,31 @@ public class RPCService implements Service {
 	 * 处理方法调用消息
 	 */
 	protected Object processMethodInvokeMessage(MethodInvokeMessage msg) throws Exception {
-		ClassMethodHelper helper = targetMap.get(msg.getClassNameHashCode());
-		if (helper == null) {
-			return new AskPatternException("Integer did not register   hashcode " + msg.getClassNameHashCode());
+		MethodInvoker invoker = methodInvokerMap.get(msg.getNameList());
+		if (invoker == null) {
+			throw new RuntimeException("method not found " + msg.getNameList());
 		}
-		return helper.searchAndInvoke(msg.getMethodNameWithParamClassNameHashCodeList(), msg.getParamList());
+		Object result = invoker.invoke(msg.getParams());
+		Integer invokerSequence = sequenceMap.get(invoker);
+		if (invokerSequence == null) {
+			invokerSequence = sequence++;
+			sequenceMap.put(invoker, invokerSequence);
+			optimizingMethodInvokerMap.put(invokerSequence, invoker);
+		}
+		//告诉客户端调用优化
+		return new MethodInvokeOptimizingResponse(invokerSequence, result);
+	}
+
+	/**
+	 * 处理方法调用消息
+	 */
+
+	protected Object processMethodInvokeOptimizingMessage(MethodInvokeOptimizingMessage msg) throws Exception {
+		MethodInvoker invoker = optimizingMethodInvokerMap.get(msg.getSequence());
+		if (invoker == null) {
+			throw new RuntimeException("method not found " + msg.getSequence());
+		}
+		return invoker.invoke(msg.getParams());
 	}
 
 	protected void initIfNecessary(ServiceContext context) throws Exception {
@@ -132,9 +158,8 @@ public class RPCService implements Service {
 			return;
 		}
 		needInit = true;
-		//初始化接口调用方法
-		targetMap = RPCSystemUtil.getClassMethodHelper(serves);
 
+		methodInvokerMap = RPCSystemUtil.getClassMethodInvoker(serves);
 		//初始化服务准备方法
 		serviceReadyInvokerMap = RPCSystemUtil.getServiceStatusHelper(serves);
 		//初始化事件调用方法

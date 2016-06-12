@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.binding;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -123,29 +124,27 @@ public class RPCSystemUtil {
 	}
 
 	/**
-	 * 获取class调用帮助
+	 * 根据接口获取调用map
 	 */
-	public static final Map<Integer, ClassMethodHelper> getClassMethodHelper(Map<Class<?>, ?> serves) {
-		return serves.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getName().hashCode(),
-				e -> new ClassMethodHelper(e.getKey(), e.getValue())));
+	public static final Map<List<String>, MethodInvoker> getClassMethodInvoker(Map<Class<?>, ?> classMap) {
+		return classMap.entrySet().stream()
+				.flatMap(
+						e -> Arrays.asList(e.getKey().getMethods()).stream()
+								.map(m -> new KeyValue<>(getNameList(e.getKey(), m),
+										new MethodInvoker(m, e.getValue()))))
+				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 	}
 
 	/**
-	 * 获取该接口所有方法,参数名,方法名的hashcode集合为key
+	 * 获取名称集合 类名+方法名+参数名
 	 */
-	public static final Map<List<Integer>, Method> getClassMethod(Class<?> interfaceClass) {
-		if (!interfaceClass.isInterface()) {
-			throw new RuntimeException(interfaceClass + " isn't a Interface");
+	public static final List<String> getNameList(Class<?> clazz, Method method) {
+		List<String> nameList = new ArrayList<>();
+		nameList.add(clazz.getName());
+		nameList.add(method.getName());
+		for (Class<?> c : method.getParameterTypes()) {
+			nameList.add(c.getName());
 		}
-		Map<List<Integer>, Method> result = Arrays.asList(interfaceClass.getMethods()).stream()
-				.collect(Collectors.toMap(m -> {
-					List<Integer> key = Arrays.asList(m.getParameterTypes()).stream()
-							.collect(Collectors.mapping(c -> c.getName().hashCode(), Collectors.toList()));
-					key.add(m.getName().hashCode());
-					return key;
-				}, m -> m));
-		Arrays.asList(interfaceClass.getInterfaces()).stream().forEach(c -> result.putAll(getClassMethod(c)));
-		return result;
+		return nameList;
 	}
-
 }

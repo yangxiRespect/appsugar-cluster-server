@@ -25,7 +25,8 @@ public class DistributionRPCSystemTest extends TestCase {
 		serves.put(Hello.class, new HelloImpl());
 		system.serviceFor(serves, "test");
 		Hello h = system.serviceOf(Hello.class);
-		h.sayHello();
+		System.out.println(" 调用第一次结果" + h.sayHello());
+		System.out.println(" 调用第二次结构" + h.sayHello());
 		system.publish("1String", "play");
 		system.publish(1, "play");
 		Thread.sleep(1000);
@@ -35,14 +36,16 @@ public class DistributionRPCSystemTest extends TestCase {
 
 @Service("test")
 interface Hello {
-	public void sayHello();
+	public String sayHello();
 }
 
 class HelloImpl implements Hello {
+	int i = 0;
 
 	@Override
-	public void sayHello() {
+	public String sayHello() {
 		System.out.println("hello");
+		return "hello" + (i++);
 	}
 
 	@ExecuteOnServiceReady(Hello.class)

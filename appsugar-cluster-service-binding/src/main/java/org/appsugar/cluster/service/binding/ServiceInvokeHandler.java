@@ -2,11 +2,14 @@ package org.appsugar.cluster.service.binding;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.appsugar.cluster.service.api.KeyValue;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
@@ -20,18 +23,18 @@ public class ServiceInvokeHandler implements InvocationHandler {
 
 	private String name;
 	private ServiceClusterSystem system;
-	private Map<Method, List<Integer>> methodSerialization;
+	private Map<Method, Integer> methodSerialization = new ConcurrentHashMap<>();
+	private Map<Method, List<String>> paramNameMap;
 	private Class<?> interfaceClass;
-	private int classNameHashCode;
 
 	public ServiceInvokeHandler(ServiceClusterSystem system, Class<?> interfaceClass) {
 		super();
 		this.name = RPCSystemUtil.getServiceName(interfaceClass);
 		this.system = system;
 		this.interfaceClass = interfaceClass;
-		methodSerialization = RPCSystemUtil.getClassMethod(interfaceClass).entrySet().stream()
-				.collect(Collectors.toMap(e -> e.getValue(), e -> e.getKey()));
-		this.classNameHashCode = interfaceClass.getName().hashCode();
+		paramNameMap = Arrays.asList(interfaceClass.getMethods()).stream()
+				.map(e -> new KeyValue<>(e, RPCSystemUtil.getNameList(interfaceClass, e)))
+				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 	}
 
 	@Override
@@ -42,7 +45,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		case "equals":
 			return proxy == args[0];
 		case "hashCode":
-			return classNameHashCode;
+			return method.hashCode();
 		case "toString":
 			return toString();
 		default:
@@ -56,21 +59,43 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		if (serviceRef == null) {
 			throw new ServiceNotFoundException("service " + name + " not ready");
 		}
-		List<Integer> serialization = methodSerialization.get(method);
-		MethodInvokeMessage message = new MethodInvokeMessage(classNameHashCode, serialization, args);
-		return CompletableFuture.class.isAssignableFrom(method.getReturnType()) ? invokeAsync(message, serviceRef)
-				: invokeSync(message, serviceRef);
+		Object message = populateMethodInvokerMessage(method, args);
+		return CompletableFuture.class.isAssignableFrom(method.getReturnType())
+				? invokeAsync(message, serviceRef, method) : invokeSync(message, serviceRef, method);
 	}
 
-	protected CompletableFuture<Object> invokeAsync(MethodInvokeMessage message, ServiceRef serviceRef)
+	protected CompletableFuture<Object> invokeAsync(Object message, ServiceRef serviceRef, Method method)
 			throws Throwable {
 		CompletableFuture<Object> future = new CompletableFuture<Object>();
-		serviceRef.ask(message, r -> future.complete(r), e -> future.completeExceptionally(e));
+		serviceRef.ask(message, result -> {
+			if (result instanceof MethodInvokeOptimizingResponse) {
+				MethodInvokeOptimizingResponse response = (MethodInvokeOptimizingResponse) result;
+				methodSerialization.put(method, response.getSequence());
+				future.complete(response.getResult());
+				return;
+			}
+			future.complete(result);
+		}, e -> future.completeExceptionally(e));
 		return future;
 	}
 
-	protected Object invokeSync(MethodInvokeMessage message, ServiceRef serviceRef) throws Throwable {
-		return serviceRef.ask(message);
+	protected Object invokeSync(Object message, ServiceRef serviceRef, Method method) throws Throwable {
+		Object result = serviceRef.ask(message);
+		if (result instanceof MethodInvokeOptimizingResponse) {
+			MethodInvokeOptimizingResponse response = (MethodInvokeOptimizingResponse) result;
+			methodSerialization.put(method, response.getSequence());
+			return response.getResult();
+		}
+		return result;
+	}
+
+	protected Object populateMethodInvokerMessage(Method method, Object[] params) {
+		Integer sequence = methodSerialization.get(method);
+		//如果该方法调用还没有被优化
+		if (sequence == null) {
+			return new MethodInvokeMessage(paramNameMap.get(method), params);
+		}
+		return new MethodInvokeOptimizingMessage(sequence, params);
 	}
 
 	public String getName() {
@@ -81,24 +106,15 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		return system;
 	}
 
-	public Map<Method, List<Integer>> getMethodSerialization() {
-		return methodSerialization;
-	}
-
 	public Class<?> getInterfaceClass() {
 		return interfaceClass;
-	}
-
-	public int getClassNameHashCode() {
-		return classNameHashCode;
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ServiceInvokeHandler [name=").append(name).append(", methodSerialization=")
-				.append(methodSerialization).append(", interfaceClass=").append(interfaceClass)
-				.append(", classNameHashCode=").append(classNameHashCode).append("]");
+				.append(methodSerialization).append(", interfaceClass=").append(interfaceClass).append("]");
 		return builder.toString();
 	}
 

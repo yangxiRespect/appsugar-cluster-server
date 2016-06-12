@@ -32,9 +32,8 @@ public class ServiceStatusHelper {
 			//状态未改变
 			return;
 		}
-		//改变服务状态
 		status = Status.ACTIVE.equals(s) ? Status.INACTIVE : Status.ACTIVE;
-		methodInvoker.invoke(new Object[] { system.serviceOf(interfaceClass), status });
+		methodInvoker.invoke(new Object[] { system.serviceOf(interfaceClass), s });
 	}
 
 	public Class<?> getInterfaceClass() {

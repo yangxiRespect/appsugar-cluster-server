@@ -52,11 +52,6 @@ public class RPCSystemUtilTest extends TestCase {
 		Assert.assertEquals(1, serviceReadyMethodMap.size());
 	}
 
-	@Test
-	public void testGetClassMethod() {
-		Map<List<Integer>, Method> methodMap = RPCSystemUtil.getClassMethod(MyService.class);
-		Assert.assertEquals(4, methodMap.size());
-	}
 }
 
 @Service(MyService.serviceName)
