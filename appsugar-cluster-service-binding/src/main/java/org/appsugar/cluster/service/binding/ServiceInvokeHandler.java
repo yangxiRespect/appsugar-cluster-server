@@ -23,7 +23,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 
 	private String name;
 	private ServiceClusterSystem system;
-	private Map<Method, Integer> methodSerialization = new ConcurrentHashMap<>();
+	private Map<ServiceRef, Map<Method, Integer>> serviceMethodSequenceMap = new ConcurrentHashMap<>();
 	private Map<Method, List<String>> paramNameMap;
 	private Class<?> interfaceClass;
 
@@ -59,7 +59,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		if (serviceRef == null) {
 			throw new ServiceNotFoundException("service " + name + " not ready");
 		}
-		Object message = populateMethodInvokerMessage(method, args);
+		Object message = populateMethodInvokerMessage(method, args, serviceRef);
 		return CompletableFuture.class.isAssignableFrom(method.getReturnType())
 				? invokeAsync(message, serviceRef, method) : invokeSync(message, serviceRef, method);
 	}
@@ -70,7 +70,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		serviceRef.ask(message, result -> {
 			if (result instanceof MethodInvokeOptimizingResponse) {
 				MethodInvokeOptimizingResponse response = (MethodInvokeOptimizingResponse) result;
-				methodSerialization.put(method, response.getSequence());
+				optimizeMethodInvoker(method, response.getSequence(), serviceRef);
 				future.complete(response.getResult());
 				return;
 			}
@@ -83,19 +83,35 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		Object result = serviceRef.ask(message);
 		if (result instanceof MethodInvokeOptimizingResponse) {
 			MethodInvokeOptimizingResponse response = (MethodInvokeOptimizingResponse) result;
-			methodSerialization.put(method, response.getSequence());
+			optimizeMethodInvoker(method, response.getSequence(), serviceRef);
 			return response.getResult();
 		}
 		return result;
 	}
 
-	protected Object populateMethodInvokerMessage(Method method, Object[] params) {
-		Integer sequence = methodSerialization.get(method);
-		//如果该方法调用还没有被优化
-		if (sequence == null) {
+	protected Object populateMethodInvokerMessage(Method method, Object[] params, ServiceRef ref) {
+		Map<Method, Integer> sequenceMap = serviceMethodSequenceMap.get(ref);
+		if (sequenceMap == null || sequenceMap.get(method) == null) {
 			return new MethodInvokeMessage(paramNameMap.get(method), params);
 		}
+		//根据ServiceRef获取对应sequence
+		Integer sequence = sequenceMap.get(method);
 		return new MethodInvokeOptimizingMessage(sequence, params);
+	}
+
+	protected void optimizeMethodInvoker(Method method, Integer sequence, ServiceRef ref) {
+		//使用乐观锁
+		Map<Method, Integer> sequenceMap = serviceMethodSequenceMap.get(ref);
+		if (sequenceMap == null) {
+			synchronized (serviceMethodSequenceMap) {
+				sequenceMap = serviceMethodSequenceMap.get(ref);
+				if (sequenceMap == null) {
+					sequenceMap = new ConcurrentHashMap<>();
+					serviceMethodSequenceMap.put(ref, sequenceMap);
+				}
+			}
+		}
+		sequenceMap.put(method, sequence);
 	}
 
 	public String getName() {
@@ -113,8 +129,8 @@ public class ServiceInvokeHandler implements InvocationHandler {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ServiceInvokeHandler [name=").append(name).append(", methodSerialization=")
-				.append(methodSerialization).append(", interfaceClass=").append(interfaceClass).append("]");
+		builder.append("ServiceInvokeHandler [name=").append(name).append(", paramNameMap=").append(paramNameMap)
+				.append(", interfaceClass=").append(interfaceClass).append("]");
 		return builder.toString();
 	}
 

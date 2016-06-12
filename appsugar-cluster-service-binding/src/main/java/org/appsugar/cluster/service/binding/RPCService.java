@@ -173,8 +173,6 @@ public class RPCService implements Service {
 		}
 		//初始化默认调用方法
 		RPCSystemUtil.getDefaultInvoker(serves).stream().forEach(o -> {
-			logger.info("try to execute  {}'s {} target {}", o.getTarget().getClass(), o.getMethod().getName(),
-					o.getTarget());
 			try {
 				o.invoke(null);
 			} catch (Throwable e) {
