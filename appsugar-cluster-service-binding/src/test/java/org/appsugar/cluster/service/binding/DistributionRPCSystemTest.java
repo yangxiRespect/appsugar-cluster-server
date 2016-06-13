@@ -27,6 +27,11 @@ public class DistributionRPCSystemTest extends TestCase {
 		Hello h = system.serviceOf(Hello.class);
 		System.out.println(" 调用第一次结果" + h.sayHello());
 		System.out.println(" 调用第二次结构" + h.sayHello());
+		long time = System.currentTimeMillis();
+		for (int i = 0; i < 100000; i++) {
+			h.sayHello();
+		}
+		System.out.println("十万次耗时" + (System.currentTimeMillis() - time));
 		system.publish("1String", "play");
 		system.publish(1, "play");
 		Thread.sleep(1000);
@@ -44,7 +49,6 @@ class HelloImpl implements Hello {
 
 	@Override
 	public String sayHello() {
-		System.out.println("hello");
 		return "hello" + (i++);
 	}
 

@@ -2,6 +2,8 @@ package org.appsugar.cluster.service.binding;
 
 import java.util.Map;
 
+import org.appsugar.cluster.service.api.ServiceRef;
+
 /**
  * 分布式方法调用系统
  * @author NewYoung
@@ -37,7 +39,7 @@ public interface DistributionRPCSystem {
 	/**
 	 *停用一个服务
 	 */
-	void stop(String name);
+	void stop(ServiceRef ref);
 
 	void terminate();
 
