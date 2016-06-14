@@ -28,8 +28,12 @@ public class ServiceInvokeHandler implements InvocationHandler {
 	private Class<?> interfaceClass;
 
 	public ServiceInvokeHandler(ServiceClusterSystem system, Class<?> interfaceClass) {
+		this(system, interfaceClass, RPCSystemUtil.getServiceName(interfaceClass));
+	}
+
+	public ServiceInvokeHandler(ServiceClusterSystem system, Class<?> interfaceClass, String name) {
 		super();
-		this.name = RPCSystemUtil.getServiceName(interfaceClass);
+		this.name = name;
 		this.system = system;
 		this.interfaceClass = interfaceClass;
 		paramNameMap = Arrays.asList(interfaceClass.getMethods()).stream()

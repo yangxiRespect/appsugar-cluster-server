@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.appsugar.cluster.service.api.KeyValue;
+import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.Status;
+import org.appsugar.cluster.service.binding.annotation.DynamicService;
 import org.appsugar.cluster.service.binding.annotation.ExecuteDefault;
 import org.appsugar.cluster.service.binding.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
@@ -31,7 +33,7 @@ public class RPCSystemUtil {
 		}
 		Service service = interfaceClass.getAnnotation(Service.class);
 		if (service == null) {
-			throw new RuntimeException("interface " + interfaceClass + " did not annotated with Service");
+			throw new ServiceException("interface " + interfaceClass + " did not annotated with Service");
 		}
 		return service.value();
 	}
@@ -146,5 +148,26 @@ public class RPCSystemUtil {
 			nameList.add(c.getName());
 		}
 		return nameList;
+	}
+
+	/**
+	 * 获取动态服务名称
+	 */
+	public static final String getDynamicServiceName(Class<?> clazz) {
+		if (!clazz.isInterface()) {
+			throw new ServiceException(clazz + " is not interface");
+		}
+		DynamicService service = clazz.getAnnotation(DynamicService.class);
+		if (service == null) {
+			throw new ServiceException("interface " + clazz + " did not annotated with DynamicService");
+		}
+		return service.value();
+	}
+
+	/**
+	 * 根据sequence获取动态服务名称
+	 */
+	public static final String getDynamicServiceNameWithSequence(String name, String sequence) {
+		return name + "/" + sequence;
 	}
 }

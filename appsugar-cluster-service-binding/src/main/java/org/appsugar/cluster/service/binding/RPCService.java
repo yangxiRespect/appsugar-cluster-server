@@ -3,6 +3,7 @@ package org.appsugar.cluster.service.binding;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
@@ -136,6 +137,19 @@ public class RPCService implements Service {
 			invokerSequence = sequence++;
 			sequenceMap.put(invoker, invokerSequence);
 			optimizingMethodInvokerMap.put(invokerSequence, invoker);
+		}
+		Integer finalSequence = invokerSequence;
+		if (result instanceof CompletableFuture) {
+			CompletableFuture<MethodInvokeOptimizingResponse> future = new CompletableFuture<>();
+			CompletableFuture<Object> f = (CompletableFuture<Object>) result;
+			f.whenComplete((r, e) -> {
+				if (e != null) {
+					future.completeExceptionally(e);
+				} else {
+					future.complete(new MethodInvokeOptimizingResponse(finalSequence, r));
+				}
+			});
+			return future;
 		}
 		//告诉客户端调用优化
 		return new MethodInvokeOptimizingResponse(invokerSequence, result);

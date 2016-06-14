@@ -17,6 +17,11 @@ public interface DistributionRPCSystem {
 	<T> T serviceOf(Class<T> ic);
 
 	/**
+	 * 获取动态服务操作对象
+	 */
+	<T> T serviceOfDynamic(Class<T> ic, String sequence);
+
+	/**
 	 * 根据接口类与对应实现类和服务名称,创建对应服务
 	 */
 	void serviceFor(Map<Class<?>, ?> serves, String name);
@@ -41,6 +46,14 @@ public interface DistributionRPCSystem {
 	 */
 	void stop(ServiceRef ref);
 
+	/**
+	 * 关闭服务
+	 */
 	void terminate();
+
+	/**
+	 * 注册服务提供工厂
+	 */
+	void registerFactory(DynamicServiceFactory factory);
 
 }

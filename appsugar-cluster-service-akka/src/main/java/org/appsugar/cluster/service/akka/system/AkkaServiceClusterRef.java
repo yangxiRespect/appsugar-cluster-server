@@ -19,6 +19,8 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 
 	private List<ServiceRef> readonlyServiceRefList = Collections.unmodifiableList(serviceRefList);
 
+	private volatile AkkaServiceRef min;
+
 	private Random random = new Random();
 
 	private int balanceSeed = 0;
@@ -71,6 +73,18 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 	}
 
 	@Override
+	public ServiceRef balance(int seed) {
+		if (serviceRefList.isEmpty()) {
+			return null;
+		}
+		try {
+			return serviceRefList.get(seed % serviceRefList.size());
+		} catch (IndexOutOfBoundsException e) {
+			return balance(seed);
+		}
+	}
+
+	@Override
 	public ServiceRef one() {
 		if (serviceRefList.isEmpty()) {
 			return null;
@@ -91,10 +105,14 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 		} else {
 			serviceRefList.add(ref);
 		}
+		if (ref.compareTo(min) == 1) {
+			min = ref;
+		}
 	}
 
 	void removeServiceRef(AkkaServiceRef ref) {
 		serviceRefList.remove(ref);
+		min = Collections.min(serviceRefList);
 	}
 
 	@Override
@@ -103,6 +121,11 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 		builder.append("AkkaServiceClusterRef [serviceRefList=").append(serviceRefList).append(", name=").append(name)
 				.append("]");
 		return builder.toString();
+	}
+
+	@Override
+	public ServiceRef min() {
+		return min;
 	}
 
 }

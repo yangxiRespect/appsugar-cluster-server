@@ -7,9 +7,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.appsugar.cluster.service.api.Service;
+import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
+import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.Status;
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	private Map<ServiceRef, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
 	private Set<ServiceListener> serviceListeners = new CopyOnWriteArraySet<>();
 	private Map<Object, Object> proxyCache = new ConcurrentHashMap<>();
+	private Map<Object, Map<String, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
 	protected Map<String, Integer> serviceStatus = new ConcurrentHashMap<>();
 
 	public DistributionRPCSystemImpl(ServiceClusterSystem system) {
@@ -56,6 +59,35 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 				new ServiceInvokeHandler(system, ic));
 		proxyCache.put(ic, result);
 		return result;
+	}
+
+	@Override
+	public <T> T serviceOfDynamic(Class<T> ic, String sequence) {
+		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
+		Map<String, Object> serviceProxyCache = dynamicProxyCache.get(ic);
+		if (serviceProxyCache == null) {
+			serviceProxyCache = new ConcurrentHashMap<>();
+			dynamicProxyCache.put(ic, serviceProxyCache);
+		}
+		T instance = (T) serviceProxyCache.get(sequence);
+		if (instance != null) {
+			return instance;
+		}
+		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
+		if (clusterRef == null || clusterRef.size() == 0) {
+			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
+		}
+		ServiceRef ref = clusterRef.min();
+		ref.ask(new DynamicServiceRequest(sequence));
+		instance = (T) serviceProxyCache.get(sequence);
+		if (instance != null) {
+			return instance;
+		}
+		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
+		instance = (T) Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(), new Class[] { ic },
+				new ServiceInvokeHandler(system, ic, dynamicServiceName));
+		serviceProxyCache.put(sequence, instance);
+		return instance;
 	}
 
 	@Override
@@ -120,6 +152,13 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		serviceListeners.clear();
 		proxyCache.clear();
 		serviceStatus.clear();
+		dynamicProxyCache.clear();
+	}
+
+	@Override
+	public void registerFactory(DynamicServiceFactory factory) {
+		Service service = new DynamicCreatorService(factory, system, factory.service());
+		system.serviceFor(service, factory.service());
 	}
 
 }

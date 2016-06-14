@@ -33,9 +33,20 @@ public interface ServiceClusterRef {
 	ServiceRef balance();
 
 	/**
+	 * 根据seed % serviceRef.length 获取serviceRef
+	 */
+	ServiceRef balance(int seed);
+
+	/**
 	 *获取一个引用,当服务数为零时返回空
 	 *优先本地引用
 	 */
 	ServiceRef one();
+
+	/**
+	 * 获取一个路径最小的引用
+	 * 使用路径和名称做比较
+	 */
+	ServiceRef min();
 
 }

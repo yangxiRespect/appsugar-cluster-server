@@ -2,6 +2,7 @@ package org.appsugar.cluster.service.binding;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.api.Status;
@@ -26,12 +27,8 @@ public class DistributionRPCSystemTest extends TestCase {
 		system.serviceFor(serves, "test");
 		Hello h = system.serviceOf(Hello.class);
 		System.out.println(" 调用第一次结果" + h.sayHello());
-		System.out.println(" 调用第二次结构" + h.sayHello());
-		long time = System.currentTimeMillis();
-		for (int i = 0; i < 100000; i++) {
-			h.sayHello();
-		}
-		System.out.println("十万次耗时" + (System.currentTimeMillis() - time));
+		System.out.println(" 调用第二次结果" + h.sayHello());
+		System.out.println(" async 调用结果" + h.asyncSayHello().get());
 		system.publish("1String", "play");
 		system.publish(1, "play");
 		Thread.sleep(1000);
@@ -42,6 +39,8 @@ public class DistributionRPCSystemTest extends TestCase {
 @Service("test")
 interface Hello {
 	public String sayHello();
+
+	public CompletableFuture<String> asyncSayHello();
 }
 
 class HelloImpl implements Hello {
@@ -50,6 +49,11 @@ class HelloImpl implements Hello {
 	@Override
 	public String sayHello() {
 		return "hello" + (i++);
+	}
+
+	@Override
+	public CompletableFuture<String> asyncSayHello() {
+		return CompletableFuture.completedFuture("xxx");
 	}
 
 	@ExecuteOnServiceReady(Hello.class)
