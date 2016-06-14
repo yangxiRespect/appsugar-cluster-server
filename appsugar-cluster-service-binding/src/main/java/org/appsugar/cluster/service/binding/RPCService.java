@@ -78,7 +78,7 @@ public class RPCService implements Service {
 			try {
 				helper.tryInvoke(rpcSystem, status);
 			} catch (Exception ex) {
-				logger.warn("execute  {} error  {} ", helper.getMethod(), ex);
+				logger.warn("execute  {} error  ", helper.getMethod(), ex);
 			}
 		}
 	}
@@ -144,6 +144,7 @@ public class RPCService implements Service {
 			CompletableFuture<Object> f = (CompletableFuture<Object>) result;
 			f.whenComplete((r, e) -> {
 				if (e != null) {
+					//如果出现异常,不进行方法调用优化.
 					future.completeExceptionally(e);
 				} else {
 					future.complete(new MethodInvokeOptimizingResponse(finalSequence, r));

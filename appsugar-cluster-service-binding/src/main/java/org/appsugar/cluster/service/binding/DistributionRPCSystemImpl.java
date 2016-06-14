@@ -77,7 +77,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		if (clusterRef == null || clusterRef.size() == 0) {
 			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
 		}
-		ServiceRef ref = clusterRef.min();
+		ServiceRef ref = clusterRef.leader();
 		ref.ask(new DynamicServiceRequest(sequence));
 		instance = (T) serviceProxyCache.get(sequence);
 		if (instance != null) {
@@ -158,7 +158,8 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	@Override
 	public void registerFactory(DynamicServiceFactory factory) {
 		Service service = new DynamicCreatorService(factory, system, factory.service());
-		system.serviceFor(service, factory.service());
+		ServiceRef serviceRef = system.serviceFor(service, factory.service());
+		serviceRefs.put(serviceRef, serviceRef);
 	}
 
 }

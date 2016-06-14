@@ -59,6 +59,8 @@ class HelloImpl implements Hello {
 	@ExecuteOnServiceReady(Hello.class)
 	public void setHello(Hello hello, Status status) {
 		System.out.println("1234 " + status);
+		System.out.println(hello);
+		hello.sayHello();
 	}
 
 	@ExecuteDefault

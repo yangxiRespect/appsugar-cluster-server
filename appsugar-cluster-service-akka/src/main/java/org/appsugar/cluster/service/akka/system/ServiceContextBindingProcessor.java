@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.akka.system;
 
+import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 
 /**
@@ -23,17 +24,17 @@ public class ServiceContextBindingProcessor implements MessageProcessor {
 		if (ctx == null) {
 			ctx = new AkkaServiceContext(system.resolveRef(pctx.getSelf()), system);
 		}
+		ServiceContext oldContext = ServiceContextThreadLocal.context();
 		try {
 			ctx.addAttribute(PROCESSOR_CONTEXT_KEY, pctx);
 			ctx.setSender(system.resolveRef(pctx.getSender()));
 			//把当前上下文绑定到线程中, 等执行完后再清除
 			ServiceContextThreadLocal.context(ctx);
-			pctx.processNext(msg);
+			return pctx.processNext(msg);
 		} finally {
 			ctx.setSender(null);
-			ServiceContextThreadLocal.context(null);
+			ServiceContextThreadLocal.context(oldContext);
 		}
-		return null;
 	}
 
 }

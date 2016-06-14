@@ -124,7 +124,7 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 	}
 
 	@Override
-	public ServiceRef min() {
+	public ServiceRef leader() {
 		return min;
 	}
 

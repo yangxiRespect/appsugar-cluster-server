@@ -188,6 +188,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 			sb.append(" : ");
 			sb.append(cause.getMessage());
 			cause = cause.getCause();
+			sb.append("\n");
 		}
 		return sb.toString();
 	}

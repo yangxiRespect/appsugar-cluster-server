@@ -6,7 +6,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.appsugar.cluster.service.api.FutureMessage;
+import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
+import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.ServiceRef;
 
 import akka.actor.ActorRef;
@@ -47,6 +49,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
 	@Override
 	public <T> T ask(Object msg, long timeout) {
+		askCheck();
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
@@ -67,6 +70,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
 	@Override
 	public <T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, long timeout) {
+		askCheck();
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
@@ -185,5 +189,15 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 	@Override
 	public int compareTo(AkkaServiceRef o) {
 		return o == null ? 1 : this.destination.path().toString().compareTo(o.destination.path().toString());
+	}
+
+	protected void askCheck() {
+		ServiceContext ctx = ServiceContextThreadLocal.context();
+		if (ctx == null) {
+			return;
+		}
+		if (ctx.self() == this) {
+			throw new ServiceException("Do not support Ask self");
+		}
 	}
 }

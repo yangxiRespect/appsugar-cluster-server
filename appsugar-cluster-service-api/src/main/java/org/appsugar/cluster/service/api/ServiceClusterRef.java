@@ -47,6 +47,6 @@ public interface ServiceClusterRef {
 	 * 获取一个路径最小的引用
 	 * 使用路径和名称做比较
 	 */
-	ServiceRef min();
+	ServiceRef leader();
 
 }
