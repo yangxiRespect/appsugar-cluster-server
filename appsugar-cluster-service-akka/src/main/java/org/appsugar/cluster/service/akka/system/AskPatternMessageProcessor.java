@@ -50,7 +50,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 		} else if (msg instanceof RepeatEvent) {
 			processRepeatEvent((RepeatEvent) msg, ctx);
 		} else {
-			processOtherMessage(msg, ctx);
+			return processOtherMessage(msg, ctx);
 		}
 		return null;
 	}
@@ -160,9 +160,9 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	/**
 	 * 处理其他消息
 	 */
-	protected void processOtherMessage(Object msg, ProcessorContext ctx) throws Throwable {
+	protected Object processOtherMessage(Object msg, ProcessorContext ctx) throws Throwable {
 		//直接交给下一个处理器处理
-		ctx.processNext(msg);
+		return ctx.processNext(msg);
 	}
 
 	/**
