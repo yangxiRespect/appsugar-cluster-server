@@ -28,7 +28,8 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	private Map<ServiceRef, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
 	private Set<ServiceListener> serviceListeners = new CopyOnWriteArraySet<>();
 	private Map<Object, Object> proxyCache = new ConcurrentHashMap<>();
-	private Map<Object, Map<String, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
+	private Map<String, Map<Class<?>, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
+
 	protected Map<String, Integer> serviceStatus = new ConcurrentHashMap<>();
 
 	public DistributionRPCSystemImpl(ServiceClusterSystem system) {
@@ -61,15 +62,20 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		return result;
 	}
 
+	/**
+	 * 如果动态服务不可用,需要移除对应服务对象.
+	 * 动态服务不可缓存RPC对象.
+	 */
 	@Override
 	public <T> T serviceOfDynamic(Class<T> ic, String sequence) {
 		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
-		Map<String, Object> serviceProxyCache = dynamicProxyCache.get(ic);
+		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
+		Map<Class<?>, Object> serviceProxyCache = dynamicProxyCache.get(dynamicServiceName);
 		if (serviceProxyCache == null) {
 			serviceProxyCache = new ConcurrentHashMap<>();
-			dynamicProxyCache.put(ic, serviceProxyCache);
+			dynamicProxyCache.put(dynamicServiceName, serviceProxyCache);
 		}
-		T instance = (T) serviceProxyCache.get(sequence);
+		T instance = (T) serviceProxyCache.get(ic);
 		if (instance != null) {
 			return instance;
 		}
@@ -79,14 +85,13 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		}
 		ServiceRef ref = clusterRef.leader();
 		ref.ask(new DynamicServiceRequest(sequence));
-		instance = (T) serviceProxyCache.get(sequence);
+		instance = (T) serviceProxyCache.get(ic);
 		if (instance != null) {
 			return instance;
 		}
-		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
 		instance = (T) Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(), new Class[] { ic },
 				new ServiceInvokeHandler(system, ic, dynamicServiceName));
-		serviceProxyCache.put(sequence, instance);
+		serviceProxyCache.put(ic, instance);
 		return instance;
 	}
 
@@ -140,6 +145,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	@Override
 	public void handle(String name, Status status) {
 		ServiceStatusMessage msg = new ServiceStatusMessage(name, status);
+		if (Status.INACTIVE.equals(status)) {
+			//动态服务需要移除,避免某些情况下无法创建动态服务
+			dynamicProxyCache.remove(name);
+		}
 		for (ServiceRef ref : serviceRefs.values()) {
 			ref.tell(msg, ServiceRef.NO_SENDER);
 		}
@@ -157,7 +166,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 
 	@Override
 	public void registerFactory(DynamicServiceFactory factory) {
-		Service service = new DynamicCreatorService(factory, system, factory.service());
+		Service service = new DynamicCreatorService(factory, system, this, factory.service());
 		ServiceRef serviceRef = system.serviceFor(service, factory.service());
 		serviceRefs.put(serviceRef, serviceRef);
 	}

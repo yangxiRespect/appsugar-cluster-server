@@ -49,7 +49,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		case "equals":
 			return proxy == args[0];
 		case "hashCode":
-			return method.hashCode();
+			return hashCode();
 		case "toString":
 			return toString();
 		default:

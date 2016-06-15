@@ -192,6 +192,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 	}
 
 	protected void askCheck() {
+		//TODO 后续想办法解决不能调用自己的问题
 		ServiceContext ctx = ServiceContextThreadLocal.context();
 		if (ctx == null) {
 			return;

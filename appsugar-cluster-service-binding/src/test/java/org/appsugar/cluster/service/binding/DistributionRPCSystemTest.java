@@ -6,10 +6,12 @@ import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.api.Status;
+import org.appsugar.cluster.service.binding.annotation.DynamicService;
 import org.appsugar.cluster.service.binding.annotation.ExecuteDefault;
 import org.appsugar.cluster.service.binding.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.binding.annotation.Service;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -34,6 +36,57 @@ public class DistributionRPCSystemTest extends TestCase {
 		Thread.sleep(1000);
 		system.terminate();
 	}
+
+	@Test
+	public void testDynamic() throws Exception {
+		DistributionRPCSystem system = new DistributionRPCSystemImpl(
+				new AkkaServiceClusterSystem("a", ConfigFactory.load()));
+		system.registerFactory(new ProductOperationServiceServiceFactory());
+		String sequence = "1";
+		ProductOperationService p = system.serviceOfDynamic(ProductOperationService.class, sequence);
+		System.out.println(" id is " + p.id());
+		Assert.assertEquals(p, system.serviceOfDynamic(ProductOperationService.class, sequence));
+		system.terminate();
+	}
+}
+
+@DynamicService("productCreate")
+interface ProductOperationService {
+
+	public Long id();
+
+}
+
+class ProductOperationServiceImpl implements ProductOperationService {
+
+	private Long id;
+
+	public ProductOperationServiceImpl(Long id) {
+		super();
+		this.id = id;
+	}
+
+	@Override
+	public Long id() {
+		return id;
+	}
+
+}
+
+class ProductOperationServiceServiceFactory implements DynamicServiceFactory {
+
+	@Override
+	public Map<Class<?>, ?> create(String sequence) {
+		Map<Class<?>, Object> result = new HashMap<>();
+		result.put(ProductOperationService.class, new ProductOperationServiceImpl(Long.parseLong(sequence)));
+		return result;
+	}
+
+	@Override
+	public String service() {
+		return "productCreate";
+	}
+
 }
 
 @Service("test")
