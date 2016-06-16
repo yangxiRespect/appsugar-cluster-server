@@ -74,7 +74,7 @@ public class ProtostuffSerialization extends JSerializer {
 	protected void registerClass(Config config) {
 		Registry registry = new ExplicitIdStrategy.Registry();
 		idStrategy = registry.strategy;
-		Config mappings = config.withFallback(ConfigFactory.load("protostuff.conf")).getConfig(mappingKey);
+		Config mappings = config.withFallback(ConfigFactory.parseResources("protostuff.conf")).getConfig(mappingKey);
 		if (mappings == null) {
 			throw new RuntimeException("config " + mappingKey + " not found");
 		}

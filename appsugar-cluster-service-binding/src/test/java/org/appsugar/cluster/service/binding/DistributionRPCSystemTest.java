@@ -12,7 +12,6 @@ import org.appsugar.cluster.service.binding.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.binding.annotation.Service;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -51,27 +50,20 @@ public class DistributionRPCSystemTest extends TestCase {
 		system.terminate();
 	}
 
-	@Test
-	@Ignore
 	public void testBinding() throws Exception {
-		Config bindingConfig = ConfigFactory.load("protostuff-service-binding.conf");
 		Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + 2551)
-				.withFallback(ConfigFactory.load()).withFallback(bindingConfig);
-		System.out.println(bindingConfig);
+				.withFallback(ConfigFactory.load());
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("ClusterSystem", config));
 		Map<Class<?>, Object> serves = new HashMap<>();
 		serves.put(Hello.class, new HelloImpl());
 		system.serviceFor(serves, Hello.serviceName);
-		Thread.sleep(100000000);
+		Thread.sleep(8000);
 	}
 
-	@Test
-	@Ignore
 	public void testRemoteInvoke() throws Exception {
-		Config bindingConfig = ConfigFactory.load("protostuff-service-binding.conf");
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
-				new AkkaServiceClusterSystem("ClusterSystem", ConfigFactory.load().withFallback(bindingConfig)));
+				new AkkaServiceClusterSystem("ClusterSystem", ConfigFactory.load()));
 		Hello hello = system.serviceOf(Hello.class);
 		Thread.sleep(3000);
 		String sayHello = hello.sayHello();
