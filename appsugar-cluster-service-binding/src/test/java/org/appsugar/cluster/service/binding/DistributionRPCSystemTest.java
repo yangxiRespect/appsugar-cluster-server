@@ -12,8 +12,10 @@ import org.appsugar.cluster.service.binding.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.binding.annotation.Service;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import junit.framework.TestCase;
@@ -47,6 +49,34 @@ public class DistributionRPCSystemTest extends TestCase {
 		System.out.println(" id is " + p.id());
 		Assert.assertEquals(p, system.serviceOfDynamic(ProductOperationService.class, sequence));
 		system.terminate();
+	}
+
+	@Test
+	@Ignore
+	public void testBinding() throws Exception {
+		Config bindingConfig = ConfigFactory.load("protostuff-service-binding.conf");
+		Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + 2551)
+				.withFallback(ConfigFactory.load()).withFallback(bindingConfig);
+		System.out.println(bindingConfig);
+		DistributionRPCSystem system = new DistributionRPCSystemImpl(
+				new AkkaServiceClusterSystem("ClusterSystem", config));
+		Map<Class<?>, Object> serves = new HashMap<>();
+		serves.put(Hello.class, new HelloImpl());
+		system.serviceFor(serves, Hello.serviceName);
+		Thread.sleep(100000000);
+	}
+
+	@Test
+	@Ignore
+	public void testRemoteInvoke() throws Exception {
+		Config bindingConfig = ConfigFactory.load("protostuff-service-binding.conf");
+		DistributionRPCSystem system = new DistributionRPCSystemImpl(
+				new AkkaServiceClusterSystem("ClusterSystem", ConfigFactory.load().withFallback(bindingConfig)));
+		Hello hello = system.serviceOf(Hello.class);
+		Thread.sleep(3000);
+		String sayHello = hello.sayHello();
+		System.out.println("sayHello " + sayHello);
+		Thread.sleep(2000);
 	}
 }
 
@@ -89,8 +119,10 @@ class ProductOperationServiceServiceFactory implements DynamicServiceFactory {
 
 }
 
-@Service("test")
+@Service(Hello.serviceName)
 interface Hello {
+	public static final String serviceName = "test";
+
 	public String sayHello();
 
 	public CompletableFuture<String> asyncSayHello();
@@ -112,7 +144,6 @@ class HelloImpl implements Hello {
 	@ExecuteOnServiceReady(Hello.class)
 	public void setHello(Hello hello, Status status) {
 		System.out.println("1234 " + status);
-		System.out.println(hello);
 	}
 
 	@ExecuteDefault
