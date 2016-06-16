@@ -53,7 +53,6 @@ public class DynamicCreatorService implements Service {
 			return handleDynamicServiceCreateMessage((DynamicServiceCreateMessage) msg, context);
 		} else if (msg instanceof ServiceStatusMessage) {
 			handleServiceStatusMessage((ServiceStatusMessage) msg, context);
-
 		}
 		return null;
 	}
@@ -72,12 +71,20 @@ public class DynamicCreatorService implements Service {
 	/**
 	 * 处理服务创建消息
 	 */
-	protected Object handleDynamicServiceCreateMessage(DynamicServiceCreateMessage msg, ServiceContext ctx)
-			throws Exception {
+	protected CompletableFuture<Object> handleDynamicServiceCreateMessage(DynamicServiceCreateMessage msg,
+			ServiceContext ctx) throws Exception {
 		String sequence = msg.getSequence();
-		Map<Class<?>, Object> serves = (Map<Class<?>, Object>) factory.create(msg.getSequence());
-		rpcSystem.serviceFor(serves, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence));
-		return Boolean.TRUE;
+		CompletableFuture<Map<Class<?>, ?>> future = factory.create(msg.getSequence());
+		CompletableFuture<Object> result = new CompletableFuture<>();
+		future.whenComplete((r, e) -> {
+			if (e != null) {
+				result.completeExceptionally(e);
+			} else {
+				rpcSystem.serviceFor(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence));
+				result.complete(true);
+			}
+		});
+		return result;
 	}
 
 	/**
@@ -106,29 +113,37 @@ public class DynamicCreatorService implements Service {
 		}
 		ServiceRef creator = clusterRef.balance(banlance++);
 		DynamicServiceCreateMessage createMsg = new DynamicServiceCreateMessage(msg.getSequence());
+		CompletableFuture<Object> result = new CompletableFuture<>();
+		serviceWaiting.put(sequence, new LinkedList<>());
 		//如果论到自己创建服务,那么直接处理创建消息
 		if (creator == ctx.self()) {
 			try {
-				handle(createMsg, ctx);
-				createdServices.add(sequence);
-				return "Create Service Success";
+				CompletableFuture<Object> future = (CompletableFuture<Object>) handle(createMsg, ctx);
+				future.whenComplete((r, e) -> {
+					if (e != null) {
+						result.completeExceptionally(e);
+						notifyWaiting(sequence, null, e);
+					} else {
+						createdServices.add(sequence);
+						result.complete(r);
+						notifyWaiting(sequence, r, null);
+					}
+				});
 			} catch (Exception ex) {
-				serviceWaiting.remove(sequence);
 				throw ex;
 			}
+		} else {
+			//请求创建服务并通知等候列表
+			creator.ask(createMsg, e -> {
+				createdServices.add(sequence);
+				result.complete(e);
+				notifyWaiting(sequence, e, null);
+			}, e -> {
+				result.completeExceptionally(e);
+				notifyWaiting(sequence, null, e);
+			});
 		}
-		//创建等候列表
-		serviceWaiting.put(sequence, new LinkedList<>());
-		CompletableFuture<Object> future = new CompletableFuture<>();
-		//请求创建服务并通知等候列表
-		creator.ask(createMsg, e -> {
-			future.complete(e);
-			notifyWaiting(sequence, e, null);
-		}, e -> {
-			future.completeExceptionally(e);
-			notifyWaiting(sequence, null, e);
-		});
-		return future;
+		return result;
 	}
 
 	private void notifyWaiting(String sequence, Object result, Throwable ex) {

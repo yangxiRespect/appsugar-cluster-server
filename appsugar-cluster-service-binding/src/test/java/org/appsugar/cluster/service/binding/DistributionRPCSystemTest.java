@@ -76,10 +76,10 @@ class ProductOperationServiceImpl implements ProductOperationService {
 class ProductOperationServiceServiceFactory implements DynamicServiceFactory {
 
 	@Override
-	public Map<Class<?>, ?> create(String sequence) {
+	public CompletableFuture<Map<Class<?>, ?>> create(String sequence) {
 		Map<Class<?>, Object> result = new HashMap<>();
 		result.put(ProductOperationService.class, new ProductOperationServiceImpl(Long.parseLong(sequence)));
-		return result;
+		return CompletableFuture.completedFuture(result);
 	}
 
 	@Override
@@ -113,7 +113,6 @@ class HelloImpl implements Hello {
 	public void setHello(Hello hello, Status status) {
 		System.out.println("1234 " + status);
 		System.out.println(hello);
-		hello.sayHello();
 	}
 
 	@ExecuteDefault

@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.binding;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 动态服务工厂
@@ -12,7 +13,7 @@ public interface DynamicServiceFactory {
 	/**
 	 * 根据参数创建服务对象
 	 */
-	public Map<Class<?>, ?> create(String sequence);
+	public CompletableFuture<Map<Class<?>, ?>> create(String sequence);
 
 	/**
 	 * 服务名称

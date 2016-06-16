@@ -20,8 +20,8 @@ import scala.Option;
  * 2016年5月29日下午4:31:57
  */
 public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
-	//默认五分钟超时
-	public static final long defaultTimeout = 1000 * 60 * 5;
+	//默认三十秒超时
+	public static final long defaultTimeout = 1000 * 30;
 	//目的地引用
 	private ActorRef destination;
 	//服务名称
