@@ -16,9 +16,4 @@ import java.lang.annotation.Target;
 @Target(value = { METHOD })
 public @interface ExecuteOnServiceReady {
 
-	/**
-	 * 对应服务接口class
-	 */
-	Class<?> value();
-
 }

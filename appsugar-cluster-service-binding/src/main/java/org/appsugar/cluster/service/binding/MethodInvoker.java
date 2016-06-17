@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.binding;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
@@ -22,8 +23,12 @@ public class MethodInvoker {
 	/**
 	 * 调用该方法 
 	 */
-	public Object invoke(Object[] paramArray) throws Exception {
-		return method.invoke(target, paramArray);
+	public Object invoke(Object[] paramArray) throws Throwable {
+		try {
+			return method.invoke(target, paramArray);
+		} catch (InvocationTargetException e) {
+			throw e.getTargetException();
+		}
 	}
 
 	public Object getTarget() {

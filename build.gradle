@@ -84,7 +84,14 @@ project(":appsugar-cluster-service-akka"){
 
 project(":appsugar-cluster-service-binding"){
 	dependencies{
-		compile project(":appsugar-cluster-service-api")
 		compile project(":appsugar-cluster-service-akka")
+	}
+}
+
+project(":appsugar-cluster-service-binding-spring"){
+	dependencies{
+		compile project(":appsugar-cluster-service-binding")
+		compile ("org.springframework:spring-context:4.2.5.RELEASE")
+		testCompile ("org.springframework:spring-test:4.2.5.RELEASE")
 	}
 }

@@ -86,7 +86,7 @@ class MyDefaultClass {
 		//event execute must have only one argument
 	}
 
-	@ExecuteOnServiceReady(MyService.class)
+	@ExecuteOnServiceReady
 	public void onProductServiceReady(MyService s, Status status) {
 
 	}

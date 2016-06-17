@@ -70,6 +70,7 @@ public class DistributionRPCSystemTest extends TestCase {
 		System.out.println("sayHello " + sayHello);
 		Thread.sleep(2000);
 	}
+
 }
 
 @DynamicService("productCreate")
@@ -112,12 +113,16 @@ class ProductOperationServiceServiceFactory implements DynamicServiceFactory {
 }
 
 @Service(Hello.serviceName)
-interface Hello {
+interface Hello extends Hello1 {
 	public static final String serviceName = "test";
 
 	public String sayHello();
 
 	public CompletableFuture<String> asyncSayHello();
+}
+
+interface Hello1 {
+
 }
 
 class HelloImpl implements Hello {
@@ -133,7 +138,7 @@ class HelloImpl implements Hello {
 		return CompletableFuture.completedFuture("xxx");
 	}
 
-	@ExecuteOnServiceReady(Hello.class)
+	@ExecuteOnServiceReady
 	public void setHello(Hello hello, Status status) {
 		System.out.println("1234 " + status);
 	}

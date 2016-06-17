@@ -49,7 +49,10 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
 	@Override
 	public <T> T ask(Object msg, long timeout) {
-		askSelfCheck();
+		if (ServiceContextThreadLocal.context() != null) {
+
+		}
+		askSelfCheck(true);
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
@@ -70,7 +73,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
 	@Override
 	public <T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, long timeout) {
-		askSelfCheck();
+		askSelfCheck(false);
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
@@ -104,7 +107,8 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 			ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
 			try {
 				pctx.processNext(new AskPatternEvent<>(msg, future, timeout, destination));
-			} catch (Throwable e1) {
+			} catch (Throwable e) {
+				//do nothing
 			}
 			return;
 		}
@@ -191,10 +195,13 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 		return o == null ? 1 : this.destination.path().toString().compareTo(o.destination.path().toString());
 	}
 
-	protected void askSelfCheck() {
+	protected void askSelfCheck(boolean sync) {
 		ServiceContext ctx = ServiceContextThreadLocal.context();
 		if (ctx == null) {
 			return;
+		}
+		if (sync) {
+			throw new ServiceException("Block ask in service are not support!");
 		}
 		if (ctx.self() == this) {
 			throw new ServiceException("Do not support Ask self");

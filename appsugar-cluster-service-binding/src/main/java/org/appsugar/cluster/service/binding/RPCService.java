@@ -40,7 +40,7 @@ public class RPCService implements Service {
 	}
 
 	@Override
-	public Object handle(Object msg, ServiceContext context) throws Exception {
+	public Object handle(Object msg, ServiceContext context) throws Throwable {
 		initIfNecessary(context);
 		if (msg instanceof MethodInvokeOptimizingMessage) {
 			return processMethodInvokeOptimizingMessage((MethodInvokeOptimizingMessage) msg);
@@ -67,7 +67,7 @@ public class RPCService implements Service {
 	/**
 	 * 处理服务变更消息
 	 */
-	protected void processServiceStatusMessage(ServiceStatusMessage msg) throws Exception {
+	protected void processServiceStatusMessage(ServiceStatusMessage msg) throws Throwable {
 		String name = msg.getName();
 		List<ServiceStatusHelper> helperList = serviceReadyInvokerMap.get(name);
 		if (helperList == null) {
@@ -86,7 +86,7 @@ public class RPCService implements Service {
 	/**
 	 * 处理事件关注消息
 	 */
-	protected void processSubscribeMessage(SubscribeMessage msg) throws Exception {
+	protected void processSubscribeMessage(SubscribeMessage msg) throws Throwable {
 		String topic = msg.getTopic();
 		List<MethodInvoker> invokerList = eventInvokerMap.get(topic);
 		if (invokerList == null) {
@@ -113,7 +113,7 @@ public class RPCService implements Service {
 	/**
 	 * 处理重复消息
 	 */
-	protected void processRepeatMessage() throws Exception {
+	protected void processRepeatMessage() throws Throwable {
 		for (RepeatInvoker invoker : repeatInvokers) {
 			try {
 				invoker.tryInvoke(System.currentTimeMillis());
@@ -126,7 +126,7 @@ public class RPCService implements Service {
 	/**
 	 * 处理方法调用消息
 	 */
-	protected Object processMethodInvokeMessage(MethodInvokeMessage msg) throws Exception {
+	protected Object processMethodInvokeMessage(MethodInvokeMessage msg) throws Throwable {
 		MethodInvoker invoker = methodInvokerMap.get(msg.getNameList());
 		if (invoker == null) {
 			throw new RuntimeException("method not found " + msg.getNameList());
@@ -160,7 +160,7 @@ public class RPCService implements Service {
 	 * 处理方法调用消息
 	 */
 
-	protected Object processMethodInvokeOptimizingMessage(MethodInvokeOptimizingMessage msg) throws Exception {
+	protected Object processMethodInvokeOptimizingMessage(MethodInvokeOptimizingMessage msg) throws Throwable {
 		MethodInvoker invoker = optimizingMethodInvokerMap.get(msg.getSequence());
 		if (invoker == null) {
 			throw new RuntimeException("method not found " + msg.getSequence());
@@ -198,7 +198,7 @@ public class RPCService implements Service {
 		rpcSystem.serviceStatus.entrySet().stream().filter(e -> e.getValue() > 0).forEach(e -> {
 			try {
 				handle(new ServiceStatusMessage(e.getKey(), Status.ACTIVE), context);
-			} catch (@SuppressWarnings("unused") Exception ex) {
+			} catch (Throwable ex) {
 				//do nothing
 			}
 		});

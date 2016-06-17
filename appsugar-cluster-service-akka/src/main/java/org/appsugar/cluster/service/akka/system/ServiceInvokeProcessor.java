@@ -19,7 +19,7 @@ public class ServiceInvokeProcessor implements MessageProcessor {
 	}
 
 	@Override
-	public Object process(ProcessorContext pctx, Object msg) throws Exception {
+	public Object process(ProcessorContext pctx, Object msg) throws Throwable {
 		return service.handle(msg, ServiceContextThreadLocal.context());
 	}
 

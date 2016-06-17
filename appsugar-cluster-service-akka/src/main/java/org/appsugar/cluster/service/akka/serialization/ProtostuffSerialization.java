@@ -100,45 +100,48 @@ public class ProtostuffSerialization extends JSerializer {
 	}
 
 	protected void initConfig(Config config) {
-		LinkedBuffer buffer = null;
 		if (config.hasPath(buffSizeKey)) {
 			bufferSize = config.getInt(buffSizeKey);
 		}
 		if (config.hasPath(serializationType)) {
 			type = config.getString(serializationType);
 		}
-		buffer = LinkedBuffer.allocate(bufferSize);
 		Schema<ProtostuffObjectWrapper> schema = RuntimeSchema.getSchema(ProtostuffObjectWrapper.class, idStrategy);
 		if ("graph".equals(type)) {
-			serializer = new GraphProtostuffSerializer(buffer, schema);
+			serializer = new GraphProtostuffSerializer(bufferSize, schema);
 		} else {
-			serializer = new DefautlProtostuffSerializer(buffer, schema);
+			serializer = new DefautlProtostuffSerializer(bufferSize, schema);
 		}
 	}
 
 	static abstract class ProtostuffSerializer {
-		protected LinkedBuffer buffer;
 		protected Schema<ProtostuffObjectWrapper> schema;
+		protected int bufferSize;
 
-		public ProtostuffSerializer(LinkedBuffer buffer, Schema<ProtostuffObjectWrapper> schema) {
+		public ProtostuffSerializer(int bufferSize, Schema<ProtostuffObjectWrapper> schema) {
 			super();
-			this.buffer = buffer;
 			this.schema = schema;
+			this.bufferSize = bufferSize;
 		}
 
 		public abstract byte[] toBinary(Object msg);
 
 		public abstract Object fromBinary(byte[] data);
+
+		protected LinkedBuffer buffer() {
+			return LinkedBuffer.allocate(bufferSize);
+		}
 	}
 
 	static class DefautlProtostuffSerializer extends ProtostuffSerializer {
 
-		public DefautlProtostuffSerializer(LinkedBuffer buffer, Schema<ProtostuffObjectWrapper> schema) {
+		public DefautlProtostuffSerializer(int buffer, Schema<ProtostuffObjectWrapper> schema) {
 			super(buffer, schema);
 		}
 
 		@Override
 		public byte[] toBinary(Object msg) {
+			LinkedBuffer buffer = buffer();
 			try {
 				return ProtostuffIOUtil.toByteArray(new ProtostuffObjectWrapper(msg), schema, buffer);
 			} finally {
@@ -157,12 +160,13 @@ public class ProtostuffSerialization extends JSerializer {
 
 	static class GraphProtostuffSerializer extends ProtostuffSerializer {
 
-		public GraphProtostuffSerializer(LinkedBuffer buffer, Schema<ProtostuffObjectWrapper> schema) {
+		public GraphProtostuffSerializer(int buffer, Schema<ProtostuffObjectWrapper> schema) {
 			super(buffer, schema);
 		}
 
 		@Override
 		public byte[] toBinary(Object msg) {
+			LinkedBuffer buffer = buffer();
 			try {
 				return GraphIOUtil.toByteArray(new ProtostuffObjectWrapper(msg), schema, buffer);
 			} finally {

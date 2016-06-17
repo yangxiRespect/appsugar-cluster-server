@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context 
+    http://www.springframework.org/schema/context/spring-context.xsd">
+	
+	<!-- 启用注解 -->
+	<context:annotation-config />
+	
+	
+	<bean class="org.appsugar.cluster.service.binding.spring.DistributionRPCSystemCreator" destroy-method="terminate">
+		<property name="name" value="ClusterSystem"/>
+		<!-- property name="configs" value="xxx.conf,aaa.conf,bbb.conf"/-->
+	</bean>
+	
+	<bean class="org.appsugar.cluster.service.binding.spring.DynamicServiceFactoryDefination">
+		<property name="factoryList">
+			<list>
+			</list>
+		</property>
+	</bean>
+	
+	<bean class="org.appsugar.cluster.service.binding.spring.ServiceDefination">
+		<property name="serves">
+			<list>
+				<ref bean="sampleService"/>
+				<ref bean="productService"/>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="sampleService" class="org.appsugar.cluster.service.binding.spring.SampleServiceImpl"/>
+	<bean id="productService" class="org.appsugar.cluster.service.binding.spring.service.ProductServiceImpl"/>
+</beans>

@@ -108,21 +108,21 @@ public class RPCSystemUtil {
 		return serves.entrySet().stream()
 				.flatMap(e -> RPCSystemUtil.getServiceReadyMethods(e.getValue()).entrySet().stream()
 						.map(k -> new KeyValue<>(k.getKey(),
-								new ServiceStatusHelper(e.getKey(), k.getValue(), e.getValue()))))
+								new ServiceStatusHelper(k.getKey(), k.getValue(), e.getValue()))))
 				.collect(Collectors.groupingBy(e -> RPCSystemUtil.getServiceName(e.getKey()),
 						Collectors.mapping(e -> e.getValue(), Collectors.toList())));
 	}
 
 	/**
-	 * 获取该类中注解为ExecuteOnServiceReady并且无参的方法
+	 * 获取该类中注解为ExecuteOnServiceReady
 	 */
 	public static final Map<Class<?>, Method> getServiceReadyMethods(Object target) {
 		Class<?> clazz = target.getClass();
 		return Arrays.asList(clazz.getMethods()).stream()
-				.filter(m -> m.isAnnotationPresent(ExecuteOnServiceReady.class) && Arrays.equals(m.getParameterTypes(),
-						new Class[] { m.getAnnotation(ExecuteOnServiceReady.class).value(), Status.class }))
-				.map(m -> new KeyValue<>(m.getAnnotation(ExecuteOnServiceReady.class).value(), m))
-				.collect(Collectors.toList()).stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+				.filter(m -> m.isAnnotationPresent(ExecuteOnServiceReady.class)
+						&& m.getParameterTypes()[1].equals(Status.class))
+				.map(m -> new KeyValue<>(m.getParameterTypes()[0], m))
+				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 	}
 
 	/**

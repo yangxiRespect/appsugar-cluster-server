@@ -20,7 +20,7 @@ public class RepeatInvoker {
 	/**
 	 * 尝试调用(如果时间间隔条件符合) 
 	 */
-	public void tryInvoke(long currentTime) throws Exception {
+	public void tryInvoke(long currentTime) throws Throwable {
 		if (lastExecuteTime == 0 || currentTime <= (lastExecuteTime + interval)) {
 			try {
 				invoker.invoke(null);
