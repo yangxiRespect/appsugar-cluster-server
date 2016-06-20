@@ -5,10 +5,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.appsugar.cluster.service.api.CompletableFutureUtil;
+import org.appsugar.cluster.service.api.FutureMessage;
 import org.appsugar.cluster.service.api.KeyValue;
+import org.appsugar.cluster.service.api.ServiceContext;
+import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 import org.appsugar.cluster.service.api.ServiceException;
+import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.Status;
 import org.appsugar.cluster.service.binding.annotation.DynamicService;
 import org.appsugar.cluster.service.binding.annotation.ExecuteDefault;
@@ -170,4 +176,28 @@ public class RPCSystemUtil {
 	public static final String getDynamicServiceNameWithSequence(String name, String sequence) {
 		return name + "/" + sequence;
 	}
+
+	/**
+	 * 确保future通知执行在当前context中
+	 */
+	public static <T> CompletableFuture<T> wrapContextFuture(CompletableFuture<T> future) {
+		ServiceContext context = ServiceContextThreadLocal.context();
+		if (context == null || future.isDone() || future.isCancelled()) {
+			return future;
+		}
+		CompletableFuture<T> notifyFuture = new CompletableFuture<>();
+		future.whenComplete((r, e) -> {
+			ServiceContext ctx = ServiceContextThreadLocal.context();
+			if (ctx == context) {
+				CompletableFutureUtil.completeNormalOrThrowable(notifyFuture, r, e);
+			} else {
+				context.self()
+						.tell(new FutureMessage<T>(r, e,
+								(r1, e1) -> CompletableFutureUtil.completeNormalOrThrowable(notifyFuture, r1, e1)),
+								ctx == null ? ServiceRef.NO_SENDER : ctx.self());
+			}
+		});
+		return notifyFuture;
+	}
+
 }
