@@ -125,7 +125,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 			MessageProcessorChain chain = new MessageProcessorChain(new ServiceContextBindingProcessor(this),
 					new FutureMessageProcessor(), new AskPatternMessageProcessor(),
 					new ServiceInvokeProcessor(service));
-			//创建一个service actor TODO 减少actor名称长度, 
+			//创建一个service actor
 			ActorRef ref = system.actorOf(Props.create(ProcessorChainActor.class, chain),
 					actorNameGenerator.getAndIncrement() + "");
 			try {

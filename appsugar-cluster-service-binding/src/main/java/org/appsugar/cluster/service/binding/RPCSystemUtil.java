@@ -23,7 +23,7 @@ import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.binding.annotation.ExecuteRepeat;
 import org.appsugar.cluster.service.binding.annotation.Service;
 
-/**TODO 支持对象父类里的方法
+/**
  * 远程调用帮助类
  * @author NewYoung
  * 2016年6月3日上午7:15:11
@@ -194,7 +194,7 @@ public class RPCSystemUtil {
 				context.self()
 						.tell(new FutureMessage<T>(r, e,
 								(r1, e1) -> CompletableFutureUtil.completeNormalOrThrowable(notifyFuture, r1, e1)),
-								ctx == null ? ServiceRef.NO_SENDER : ctx.self());
+								ctx == null ? ServiceRef.NO_SENDER : ctx.sender());
 			}
 		});
 		return notifyFuture;
