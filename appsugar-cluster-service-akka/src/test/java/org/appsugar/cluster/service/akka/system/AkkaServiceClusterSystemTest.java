@@ -51,7 +51,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		ServiceClusterSystem system = new AkkaServiceClusterSystem("system", ConfigFactory.load());
 		ServiceRef serviceRef = system.serviceFor(new SayHelloService(), "hello");
 		long start = System.currentTimeMillis();
-		int times = 10000000;
+		int times = 1000000;
 		for (int i = 1; i < times; i++) {
 			serviceRef.ask("1", e -> {
 			}, e -> {

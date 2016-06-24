@@ -43,6 +43,8 @@ configure(subprojects) { project ->
 		akkaVersion = "2.4.6"
 		fstVersion = "2.47"
 		protostuffVersion = "1.4.3"
+		appsugarVersion = "2.0.5-SNAPSHOT"
+		springVersion = "4.2.6.RELEASE"
 	}
 	compileJava.options.encoding = ext["encoding"];
 	compileTestJava.options.encoding = ext["encoding"];
@@ -93,7 +95,7 @@ project(":appsugar-cluster-service-binding"){
 project(":appsugar-cluster-service-binding-spring"){
 	dependencies{
 		compile project(":appsugar-cluster-service-binding")
-		compile ("org.springframework:spring-context:4.2.5.RELEASE")
-		testCompile ("org.springframework:spring-test:4.2.5.RELEASE")
+		compile ("org.springframework:spring-context:${springVersion}")
+		testCompile ("org.springframework:spring-test:${springVersion}")
 	}
 }
