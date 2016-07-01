@@ -12,8 +12,6 @@ import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.annotation.Service;
 import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.RPCSystemUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 
 /**
@@ -24,8 +22,6 @@ import org.springframework.context.annotation.Lazy;
  */
 @Lazy(false)
 public class ServiceDefination {
-
-	private static Logger logger = LoggerFactory.getLogger(ServiceDefination.class);
 
 	private DistributionRPCSystem system;
 

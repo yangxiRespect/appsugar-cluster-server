@@ -4,7 +4,6 @@ import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.DistributionRPCSystemImpl;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -72,7 +71,6 @@ public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPC
 		return name;
 	}
 
-	@Autowired(required = true)
 	public void setName(String name) {
 		this.name = name;
 	}
