@@ -14,7 +14,6 @@ import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.RPCSystemUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 
 /**
@@ -40,12 +39,10 @@ public class ServiceDefination {
 		return serves;
 	}
 
-	@Autowired
 	public void setSystem(DistributionRPCSystem system) {
 		this.system = system;
 	}
 
-	@Autowired
 	public void setServes(List<Object> serves) {
 		this.serves = serves;
 	}

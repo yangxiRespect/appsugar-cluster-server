@@ -11,7 +11,7 @@
 	<context:annotation-config />
 	
 	
-	<bean class="org.appsugar.cluster.service.binding.spring.DistributionRPCSystemCreator" destroy-method="terminate">
+	<bean id="system" class="org.appsugar.cluster.service.binding.spring.DistributionRPCSystemCreator" destroy-method="terminate">
 		<property name="name" value="ClusterSystem"/>
 		<!-- property name="configs" value="xxx.conf,aaa.conf,bbb.conf"/-->
 	</bean>
@@ -21,6 +21,7 @@
 			<list>
 			</list>
 		</property>
+		<property name="system" ref="system"/>
 	</bean>
 	
 	<bean class="org.appsugar.cluster.service.binding.spring.ServiceDefination">
@@ -30,6 +31,7 @@
 				<ref bean="productService"/>
 			</list>
 		</property>
+		<property name="system" ref="system"/>
 	</bean>
 	
 	<bean id="sampleService" class="org.appsugar.cluster.service.binding.spring.SampleServiceImpl"/>

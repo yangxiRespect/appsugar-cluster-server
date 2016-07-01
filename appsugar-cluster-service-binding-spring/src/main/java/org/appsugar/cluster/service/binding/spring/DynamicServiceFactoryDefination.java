@@ -8,7 +8,6 @@ import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.DynamicServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 
 /**
@@ -32,12 +31,10 @@ public class DynamicServiceFactoryDefination {
 		return factoryList;
 	}
 
-	@Autowired
 	public void setSystem(DistributionRPCSystem system) {
 		this.system = system;
 	}
 
-	@Autowired
 	public void setFactoryList(List<DynamicServiceFactory> factoryList) {
 		this.factoryList = factoryList;
 	}
