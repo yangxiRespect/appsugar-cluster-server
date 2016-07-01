@@ -13,6 +13,7 @@ import org.appsugar.cluster.service.api.KeyValue;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
+import org.appsugar.cluster.service.binding.annotation.ExecuteTimeout;
 
 /**
  * 服务调用代理接口
@@ -71,6 +72,11 @@ public class ServiceInvokeHandler implements InvocationHandler {
 	protected CompletableFuture<Object> invokeAsync(Object message, ServiceRef serviceRef, Method method)
 			throws Throwable {
 		CompletableFuture<Object> future = new CompletableFuture<Object>();
+		long timeout = 30000;
+		ExecuteTimeout timeOutAnnotation = method.getAnnotation(ExecuteTimeout.class);
+		if (timeOutAnnotation != null) {
+			timeout = timeOutAnnotation.value();
+		}
 		serviceRef.ask(message, result -> {
 			if (result instanceof MethodInvokeOptimizingResponse) {
 				MethodInvokeOptimizingResponse response = (MethodInvokeOptimizingResponse) result;
@@ -79,7 +85,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 				return;
 			}
 			future.complete(result);
-		}, e -> future.completeExceptionally(e));
+		}, e -> future.completeExceptionally(e), timeout);
 		return future;
 	}
 
