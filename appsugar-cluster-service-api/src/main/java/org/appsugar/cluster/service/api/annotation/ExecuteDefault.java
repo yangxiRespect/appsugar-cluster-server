@@ -1,4 +1,4 @@
-package org.appsugar.cluster.service.binding.annotation;
+package org.appsugar.cluster.service.api.annotation;
 
 import static java.lang.annotation.ElementType.METHOD;
 

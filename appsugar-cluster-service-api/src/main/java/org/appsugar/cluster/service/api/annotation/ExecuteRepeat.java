@@ -1,4 +1,4 @@
-package org.appsugar.cluster.service.binding.annotation;
+package org.appsugar.cluster.service.api.annotation;
 
 import static java.lang.annotation.ElementType.METHOD;
 
@@ -7,13 +7,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 当服务就绪时被调用
+ * 重复调用
  * 方法搜索范围(当前类:不包含父类中方法)
  * @author NewYoung
- * 2016年6月3日上午2:54:47
+ * 2016年6月3日上午2:57:25
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(value = { METHOD })
-public @interface ExecuteOnServiceReady {
-
+public @interface ExecuteRepeat {
+	/**
+	 * 间隔(毫秒)
+	 */
+	public long value() default 1000l;
 }

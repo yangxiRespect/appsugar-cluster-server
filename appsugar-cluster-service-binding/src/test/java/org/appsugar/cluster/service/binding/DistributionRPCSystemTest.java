@@ -6,11 +6,11 @@ import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.api.Status;
-import org.appsugar.cluster.service.binding.annotation.DynamicService;
-import org.appsugar.cluster.service.binding.annotation.ExecuteDefault;
-import org.appsugar.cluster.service.binding.annotation.ExecuteOnEvent;
-import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
-import org.appsugar.cluster.service.binding.annotation.Service;
+import org.appsugar.cluster.service.api.annotation.DynamicService;
+import org.appsugar.cluster.service.api.annotation.ExecuteDefault;
+import org.appsugar.cluster.service.api.annotation.ExecuteOnEvent;
+import org.appsugar.cluster.service.api.annotation.ExecuteOnServiceReady;
+import org.appsugar.cluster.service.api.annotation.Service;
 import org.junit.Assert;
 import org.junit.Test;
 

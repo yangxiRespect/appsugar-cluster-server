@@ -13,7 +13,7 @@ import org.appsugar.cluster.service.api.KeyValue;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
-import org.appsugar.cluster.service.binding.annotation.ExecuteTimeout;
+import org.appsugar.cluster.service.api.annotation.ExecuteTimeout;
 
 /**
  * 服务调用代理接口

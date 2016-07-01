@@ -1,6 +1,6 @@
 package org.appsugar.cluster.service.binding.spring;
 
-import org.appsugar.cluster.service.binding.annotation.Service;
+import org.appsugar.cluster.service.api.annotation.Service;
 
 /**
  * 简单演示服务

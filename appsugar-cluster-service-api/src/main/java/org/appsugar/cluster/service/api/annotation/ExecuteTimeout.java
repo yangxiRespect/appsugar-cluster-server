@@ -1,4 +1,4 @@
-package org.appsugar.cluster.service.binding.annotation;
+package org.appsugar.cluster.service.api.annotation;
 
 /**
  * 调用超时设置

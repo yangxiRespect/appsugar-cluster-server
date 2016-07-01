@@ -2,7 +2,7 @@ package org.appsugar.cluster.service.binding.spring.service;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.appsugar.cluster.service.binding.annotation.Service;
+import org.appsugar.cluster.service.api.annotation.Service;
 
 @Service(ProductService.name)
 public interface ProductService {

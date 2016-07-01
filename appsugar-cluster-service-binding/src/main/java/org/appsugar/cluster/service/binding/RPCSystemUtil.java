@@ -16,12 +16,12 @@ import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.Status;
-import org.appsugar.cluster.service.binding.annotation.DynamicService;
-import org.appsugar.cluster.service.binding.annotation.ExecuteDefault;
-import org.appsugar.cluster.service.binding.annotation.ExecuteOnEvent;
-import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
-import org.appsugar.cluster.service.binding.annotation.ExecuteRepeat;
-import org.appsugar.cluster.service.binding.annotation.Service;
+import org.appsugar.cluster.service.api.annotation.DynamicService;
+import org.appsugar.cluster.service.api.annotation.ExecuteDefault;
+import org.appsugar.cluster.service.api.annotation.ExecuteOnEvent;
+import org.appsugar.cluster.service.api.annotation.ExecuteOnServiceReady;
+import org.appsugar.cluster.service.api.annotation.ExecuteRepeat;
+import org.appsugar.cluster.service.api.annotation.Service;
 
 /**
  * 远程调用帮助类

@@ -1,4 +1,4 @@
-package org.appsugar.cluster.service.binding.annotation;
+package org.appsugar.cluster.service.api.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

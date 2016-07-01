@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.appsugar.cluster.service.api.Status;
-import org.appsugar.cluster.service.binding.annotation.ExecuteDefault;
-import org.appsugar.cluster.service.binding.annotation.ExecuteOnEvent;
-import org.appsugar.cluster.service.binding.annotation.ExecuteOnServiceReady;
-import org.appsugar.cluster.service.binding.annotation.ExecuteRepeat;
-import org.appsugar.cluster.service.binding.annotation.Service;
+import org.appsugar.cluster.service.api.annotation.ExecuteDefault;
+import org.appsugar.cluster.service.api.annotation.ExecuteOnEvent;
+import org.appsugar.cluster.service.api.annotation.ExecuteOnServiceReady;
+import org.appsugar.cluster.service.api.annotation.ExecuteRepeat;
+import org.appsugar.cluster.service.api.annotation.Service;
 import org.junit.Assert;
 import org.junit.Test;
 

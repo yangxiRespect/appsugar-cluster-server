@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 
 import org.appsugar.cluster.service.api.ServiceException;
+import org.appsugar.cluster.service.api.annotation.Service;
 import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.RPCSystemUtil;
-import org.appsugar.cluster.service.binding.annotation.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
