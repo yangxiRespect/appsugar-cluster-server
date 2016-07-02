@@ -12,6 +12,7 @@ import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.annotation.Service;
 import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.RPCSystemUtil;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.context.annotation.Lazy;
 
 /**
@@ -55,14 +56,18 @@ public class ServiceDefination {
 	}
 
 	protected Class<?> getServeInterface(Object target) {
-		Class<?>[] clazz = target.getClass().getInterfaces();
-		for (Class<?> c : clazz) {
-			if (!c.isAnnotationPresent(Service.class)) {
-				continue;
+		Class<?> clazz = AopUtils.getTargetClass(target);
+		do {
+			for (Class<?> c : clazz.getInterfaces()) {
+				if (!c.isAnnotationPresent(Service.class)) {
+					continue;
+				}
+				return c;
 			}
-			return c;
-		}
+			clazz = clazz.getSuperclass();
+		} while (clazz != null);
 		throw new ServiceException(
-				"Did not found Service Interface annotated with org.appsugar.cluster.service.binding.annotation.Service");
+				"Did not found Service Interface annotated with org.appsugar.cluster.service.binding.annotation.Service "
+						+ target.getClass());
 	}
 }
