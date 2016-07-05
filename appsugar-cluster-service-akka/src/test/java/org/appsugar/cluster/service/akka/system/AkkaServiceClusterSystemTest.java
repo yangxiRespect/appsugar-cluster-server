@@ -58,6 +58,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 				System.out.println(e);
 			});
 		}
+		serviceRef.ask("c");
 		System.out.println(System.currentTimeMillis() - start);
 	}
 

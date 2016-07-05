@@ -113,7 +113,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 			return;
 		}
 		CompletableFuture<T> future = new CompletableFuture<T>();
-		future.whenCompleteAsync(consumer);
+		future.whenComplete(consumer);
 		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
 		sender.tell(event, ActorRef.noSender());
 	}

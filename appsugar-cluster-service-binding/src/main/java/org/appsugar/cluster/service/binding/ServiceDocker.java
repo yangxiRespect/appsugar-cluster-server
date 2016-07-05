@@ -73,6 +73,7 @@ public class ServiceDocker<R, P> {
 					}
 				});
 				consumerList.clear();
+				break;
 			}
 		}
 	}
