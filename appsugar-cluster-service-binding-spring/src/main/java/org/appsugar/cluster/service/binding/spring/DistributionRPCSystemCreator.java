@@ -1,8 +1,12 @@
 package org.appsugar.cluster.service.binding.spring;
 
+import java.io.File;
+
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.DistributionRPCSystemImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
 import com.typesafe.config.Config;
@@ -15,24 +19,30 @@ import com.typesafe.config.ConfigFactory;
  */
 public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPCSystem> {
 
+	private static final Logger logger = LoggerFactory.getLogger(DistributionRPCSystemCreator.class);
+
 	private DistributionRPCSystem system;
 
 	private String configs;
 
 	private String name;
 
-	private int port;
-
 	protected DistributionRPCSystem create() {
 		Config config = ConfigFactory.load();
 		if (configs != null) {
 			String[] configArray = configs.split(",");
-			config = ConfigFactory.load(configArray[0]);
 			for (int i = 1; i < configArray.length; i++) {
-				config = config.withFallback(ConfigFactory.parseResources(configArray[i]));
+				String resource = configArray[i];
+				try {
+					File file = new File(resource);
+					Config resourceConfig = file.isFile() ? ConfigFactory.parseFile(file)
+							: ConfigFactory.parseResources(resource);
+					config = resourceConfig.withFallback(config);
+				} catch (Exception ex) {
+					logger.error("akka config resource not found {} ({})", resource, ex.getMessage());
+				}
 			}
 		}
-		config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port).withFallback(config);
 		system = new DistributionRPCSystemImpl(new AkkaServiceClusterSystem(name, config));
 		return system;
 	}
@@ -75,11 +85,4 @@ public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPC
 		this.name = name;
 	}
 
-	public int getPort() {
-		return port;
-	}
-
-	public void setPort(int port) {
-		this.port = port;
-	}
 }
