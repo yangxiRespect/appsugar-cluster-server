@@ -62,6 +62,9 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		return future;
 	}
 
+	/**
+	 * actors 只会一次一个
+	 */
 	@Override
 	public void handle(List<ActorShare> actors, ClusterStatus status) {
 		logger.debug(" share actor event  status {} share {}", status, actors);
@@ -70,7 +73,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			actorShareListener.handle(actors, status);
 		} finally {
 			//如果是本地actor服务(本地服务一次只会有一个)
-			if (actors.size() == 1 && actors.get(0).getActorRef().path().address().hasLocalScope()) {
+			if (actors.get(0).getActorRef().path().address().hasLocalScope()) {
 				if (ClusterStatus.UP.equals(status)) {
 					localActorRefList.addAll(actors);
 				} else {
@@ -82,6 +85,14 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 						.forEach(m -> system.actorSelection(m.address() + ACTOR_SHARE_COLLECTOR_PATH).tell(
 								new ActorClusterShareMessage(status, new ActorShare(actorShare.getName())),
 								actorShare.getActorRef()));
+			} else {
+				ActorShare actorShare = actors.get(0);
+				List<ActorShare> remoteActorList = remoteActorRef.get(actorShare.getActorRef().path().address());
+				if (ClusterStatus.UP.equals(status)) {
+					remoteActorList.add(actorShare);
+				} else {
+					remoteActorList.remove(actorShare);
+				}
 			}
 		}
 	}
