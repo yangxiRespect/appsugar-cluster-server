@@ -2,6 +2,7 @@ package org.appsugar.cluster.service.binding;
 
 import java.lang.reflect.Proxy;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -62,6 +63,15 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		return result;
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T> T serviceOfIfPresent(Class<T> ic) {
+		if (proxyCache.containsKey(ic)) {
+			return (T) proxyCache.get(ic);
+		}
+		return null;
+	}
+
 	/**
 	 * 如果动态服务不可用,需要移除对应服务对象.
 	 * 动态服务不可缓存RPC对象.
@@ -93,6 +103,17 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 				new ServiceInvokeHandler(system, ic, dynamicServiceName));
 		serviceProxyCache.put(ic, instance);
 		return instance;
+	}
+
+	@Override
+	public <T> T serviceOfDynamicIfPresent(Class<T> ic, String sequence) {
+		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
+		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
+		Map<Class<?>, Object> serviceProxyCache = dynamicProxyCache.get(dynamicServiceName);
+		if (Objects.isNull(serviceProxyCache)) {
+			return null;
+		}
+		return (T) serviceProxyCache.get(ic);
 	}
 
 	@Override

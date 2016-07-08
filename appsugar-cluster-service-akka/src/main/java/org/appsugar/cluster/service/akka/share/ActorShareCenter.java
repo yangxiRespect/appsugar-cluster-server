@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -87,7 +88,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 								actorShare.getActorRef()));
 			} else {
 				ActorShare actorShare = actors.get(0);
-				List<ActorShare> remoteActorList = remoteActorRef.get(actorShare.getActorRef().path().address());
+				List<ActorShare> remoteActorList = getAndCreateShareActorCollection(actorShare.getActorRef().path().address());
 				if (ClusterStatus.UP.equals(status)) {
 					remoteActorList.add(actorShare);
 				} else {
@@ -107,7 +108,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		logger.info("member event status {} member {}", state, m);
 		if (ClusterStatus.UP.equals(state)) {
 			members.add(m);
-			remoteActorRef.put(m.address(), new ArrayList<>());
+			getAndCreateShareActorCollection(m.address());
 			if (localActorRefList.isEmpty()) {
 				return;
 			}
@@ -121,7 +122,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			members.remove(m);
 			List<ActorShare> actorShareList = remoteActorRef.remove(m.address());
 			//有可能接收到unreachable 和 memberRemove事件,导致空指针异常
-			if (actorShareList == null || actorShareList.isEmpty()) {
+			if (Objects.isNull(actorShareList) || actorShareList.isEmpty()) {
 				return;
 			}
 			//该服务节点被移除,对应的actor共享服务也应该被移除
@@ -130,4 +131,12 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		}
 	}
 
+	protected List<ActorShare> getAndCreateShareActorCollection(Address address) {
+		List<ActorShare> actorShareList = remoteActorRef.get(address);
+		if (actorShareList == null) {
+			actorShareList = new ArrayList<>();
+			remoteActorRef.put(address, actorShareList);
+		}
+		return actorShareList;
+	}
 }

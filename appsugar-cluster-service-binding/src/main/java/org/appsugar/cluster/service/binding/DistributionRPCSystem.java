@@ -17,7 +17,19 @@ public interface DistributionRPCSystem {
 	<T> T serviceOf(Class<T> ic);
 
 	/**
+	 * 根据接口类获取操作对象 ,如果服务不存在,返回null
+	 */
+	<T> T serviceOfIfPresent(Class<T> ic);
+
+	/**
 	 * 获取动态服务操作对象
+	 * 如果不存在,那么返回null
+	 */
+	<T> T serviceOfDynamicIfPresent(Class<T> ic, String sequence);
+
+	/**
+	 * 获取动态服务操作对象
+	 * 如果服务不存在,会请求对应动态服务创建工厂创建对应服务
 	 */
 	<T> T serviceOfDynamic(Class<T> ic, String sequence);
 
