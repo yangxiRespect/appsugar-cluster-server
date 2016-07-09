@@ -72,7 +72,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 	protected CompletableFuture<Object> invokeAsync(Object message, ServiceRef serviceRef, Method method)
 			throws Throwable {
 		CompletableFuture<Object> future = new CompletableFuture<Object>();
-		long timeout = 300000;
+		long timeout = 30000;
 		ExecuteTimeout timeOutAnnotation = method.getAnnotation(ExecuteTimeout.class);
 		if (timeOutAnnotation != null) {
 			timeout = timeOutAnnotation.value();

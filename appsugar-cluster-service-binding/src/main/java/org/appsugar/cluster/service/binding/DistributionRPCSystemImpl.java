@@ -63,13 +63,14 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		return result;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T serviceOfIfPresent(Class<T> ic) {
-		if (proxyCache.containsKey(ic)) {
-			return (T) proxyCache.get(ic);
+		String serviceName = RPCSystemUtil.getServiceName(ic);
+		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
+		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
+			return null;
 		}
-		return null;
+		return serviceOf(ic);
 	}
 
 	/**
@@ -89,8 +90,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		if (instance != null) {
 			return instance;
 		}
+		//TODO如果动态服务存在, 直接创建对应代理对象
+
 		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
-		if (clusterRef == null || clusterRef.size() == 0) {
+		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
 			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
 		}
 		ServiceRef ref = clusterRef.leader();
@@ -109,11 +112,11 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	public <T> T serviceOfDynamicIfPresent(Class<T> ic, String sequence) {
 		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
 		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
-		Map<Class<?>, Object> serviceProxyCache = dynamicProxyCache.get(dynamicServiceName);
-		if (Objects.isNull(serviceProxyCache)) {
+		ServiceClusterRef clusterRef = system.serviceOf(dynamicServiceName);
+		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
 			return null;
 		}
-		return (T) serviceProxyCache.get(ic);
+		return serviceOfDynamic(ic, sequence);
 	}
 
 	@Override
