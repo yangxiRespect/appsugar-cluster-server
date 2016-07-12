@@ -2,6 +2,7 @@ package org.appsugar.cluster.service.akka.serialization;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,6 +118,7 @@ public class ProtostuffSerialization extends JSerializer {
 	static abstract class ProtostuffSerializer {
 		protected Schema<ProtostuffObjectWrapper> schema;
 		protected int bufferSize;
+		protected ThreadLocal<LinkedBuffer> localBuffer = new ThreadLocal<>();
 
 		public ProtostuffSerializer(int bufferSize, Schema<ProtostuffObjectWrapper> schema) {
 			super();
@@ -129,7 +131,12 @@ public class ProtostuffSerialization extends JSerializer {
 		public abstract Object fromBinary(byte[] data);
 
 		protected LinkedBuffer buffer() {
-			return LinkedBuffer.allocate(bufferSize);
+			LinkedBuffer buffer = localBuffer.get();
+			if (Objects.isNull(buffer)) {
+				buffer = LinkedBuffer.allocate(bufferSize);
+				localBuffer.set(buffer);
+			}
+			return buffer;
 		}
 	}
 
