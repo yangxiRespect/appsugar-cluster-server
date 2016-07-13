@@ -4,8 +4,8 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
-import org.appsugar.cluster.service.binding.DistributionRPCSystem;
-import org.appsugar.cluster.service.binding.DynamicServiceFactory;
+import org.appsugar.cluster.service.api.DistributionRPCSystem;
+import org.appsugar.cluster.service.api.DynamicServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;

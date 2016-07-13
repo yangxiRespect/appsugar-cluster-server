@@ -1,4 +1,4 @@
-package org.appsugar.cluster.service.binding;
+package org.appsugar.cluster.service.api;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;

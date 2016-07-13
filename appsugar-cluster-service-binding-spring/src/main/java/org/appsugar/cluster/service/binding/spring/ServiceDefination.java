@@ -8,9 +8,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.annotation.Service;
-import org.appsugar.cluster.service.binding.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.RPCSystemUtil;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.annotation.Lazy;

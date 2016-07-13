@@ -1,6 +1,4 @@
-package org.appsugar.cluster.service.binding;
-
-import org.appsugar.cluster.service.api.Status;
+package org.appsugar.cluster.service.api;
 
 /**
  * 服务状态改变监听

@@ -1,11 +1,9 @@
-package org.appsugar.cluster.service.binding;
+package org.appsugar.cluster.service.api;
 
 import java.util.Map;
 
-import org.appsugar.cluster.service.api.ServiceRef;
-
 /**
- * 分布式方法调用系统
+ * 分布式方法调用系统 
  * @author NewYoung
  * 2016年6月4日上午12:35:28
  */

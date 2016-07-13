@@ -3,7 +3,7 @@ package org.appsugar.cluster.service.binding.spring;
 import java.io.File;
 
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
-import org.appsugar.cluster.service.binding.DistributionRPCSystem;
+import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.binding.DistributionRPCSystemImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
