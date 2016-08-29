@@ -15,7 +15,11 @@ public class MethodInvoker {
 	private Class<?>[] parameterTypes;
 
 	public MethodInvoker(Method method, Object target) {
-		this.target = target;
+		if (target instanceof ProxyServer) {
+			this.target = ((ProxyServer) target).getObject();
+		} else {
+			this.target = target;
+		}
 		this.method = method;
 		this.parameterTypes = method.getParameterTypes();
 	}

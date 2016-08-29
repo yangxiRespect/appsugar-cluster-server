@@ -58,6 +58,9 @@ public class RPCSystemUtil {
 	 */
 	public static final List<Method> getDefaultMethod(Object target) {
 		Class<?> clazz = target.getClass();
+		if (target instanceof ProxyServer) {
+			clazz = ((ProxyServer) target).getTargetClass();
+		}
 		return Arrays.asList(clazz.getMethods()).stream()
 				.filter(m -> m.isAnnotationPresent(ExecuteDefault.class) && m.getParameterCount() == 0)
 				.collect(Collectors.toList());
@@ -76,6 +79,9 @@ public class RPCSystemUtil {
 	 */
 	public static final List<Method> getRepeatMethods(Object target) {
 		Class<?> clazz = target.getClass();
+		if (target instanceof ProxyServer) {
+			clazz = ((ProxyServer) target).getTargetClass();
+		}
 		return Arrays.asList(clazz.getMethods()).stream()
 				.filter(m -> m.isAnnotationPresent(ExecuteRepeat.class) && m.getParameterCount() == 0)
 				.collect(Collectors.toList());
@@ -99,6 +105,9 @@ public class RPCSystemUtil {
 	 */
 	public static final Map<String, List<Method>> getEventMethods(Object target) {
 		Class<?> clazz = target.getClass();
+		if (target instanceof ProxyServer) {
+			clazz = ((ProxyServer) target).getTargetClass();
+		}
 		List<KeyValue<String, Method>> defaultMethods = Arrays.asList(clazz.getMethods()).stream()
 				.filter(m -> m.isAnnotationPresent(ExecuteOnEvent.class) && m.getParameterCount() == 1)
 				.map(e -> new KeyValue<>(e.getAnnotation(ExecuteOnEvent.class).value(), e))
@@ -124,6 +133,9 @@ public class RPCSystemUtil {
 	 */
 	public static final Map<Class<?>, Method> getServiceReadyMethods(Object target) {
 		Class<?> clazz = target.getClass();
+		if (target instanceof ProxyServer) {
+			clazz = ((ProxyServer) target).getTargetClass();
+		}
 		return Arrays.asList(clazz.getMethods()).stream()
 				.filter(m -> m.isAnnotationPresent(ExecuteOnServiceReady.class)
 						&& m.getParameterTypes()[1].equals(Status.class))

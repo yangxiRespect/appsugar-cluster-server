@@ -39,7 +39,7 @@ public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPC
 							: ConfigFactory.parseResources(resource);
 					config = resourceConfig.withFallback(config);
 				} catch (Exception ex) {
-					logger.error("akka config resource not found {} ({})", resource, ex.getMessage());
+					logger.warn("akka config resource not found {} ({})", resource, ex.getMessage());
 				}
 			}
 		}
