@@ -6,10 +6,11 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.appsugar.cluster.service.api.FutureMessage;
-import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
 import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.ServiceRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import scala.Option;
@@ -20,6 +21,8 @@ import scala.Option;
  * 2016年5月29日下午4:31:57
  */
 public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
+
+	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceRef.class);
 	//默认三十秒超时
 	public static final long defaultTimeout = 1000 * 30;
 	//目的地引用
@@ -49,19 +52,23 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
 	@Override
 	public <T> T ask(Object msg, long timeout) {
-		if (ServiceContextThreadLocal.context() != null) {
-
-		}
-		askSelfCheck(true);
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
-		CompletableFuture<T> future = new CompletableFuture<T>();
-		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
-		askPatternRef.tell(event, ActorRef.noSender());
 		try {
+			CompletableFuture<T> future = new CompletableFuture<T>();
+			AkkaServiceContext context = (AkkaServiceContext) ServiceContextThreadLocal.context();
+			if (context != null && context.self().destination.equals(destination)) {
+				//服务调用自己,直接发送
+				ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
+				pctx.processNext(new AskPatternEvent<>(msg, future, timeout, destination));
+				return future.get();
+			}
+			logger.debug("server ask in sync pattern  this will cause performance  problem");
+			AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
+			askPatternRef.tell(event, ActorRef.noSender());
 			return future.get();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			throw new ServiceException("execute ask request error", e);
 		}
 	}
@@ -73,7 +80,6 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
 	@Override
 	public <T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, long timeout) {
-		askSelfCheck(false);
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
@@ -195,16 +201,4 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 		return o == null ? 1 : this.destination.path().toString().compareTo(o.destination.path().toString());
 	}
 
-	protected void askSelfCheck(boolean sync) {
-		ServiceContext ctx = ServiceContextThreadLocal.context();
-		if (ctx == null) {
-			return;
-		}
-		if (sync) {
-			throw new ServiceException("Block ask in service are not support!");
-		}
-		if (ctx.self() == this) {
-			throw new ServiceException("Do not support Ask self");
-		}
-	}
 }
