@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class DistributionRPCSystemImpl implements DistributionRPCSystem, ServiceListener {
 	private static final Logger logger = LoggerFactory.getLogger(DistributionRPCSystemImpl.class);
 	private ServiceClusterSystem system;
-	private Map<ServiceRef, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
+	private Map<String, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
 	private Set<ServiceListener> serviceListeners = new CopyOnWriteArraySet<>();
 	private Map<Object, Object> proxyCache = new ConcurrentHashMap<>();
 	private Map<String, Map<Class<?>, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
@@ -126,7 +126,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	public void serviceFor(Map<Class<?>, ?> serves, String name) {
 		Service service = new RPCService(system, this, serves);
 		ServiceRef serviceRef = system.serviceFor(service, name);
-		serviceRefs.put(serviceRef, serviceRef);
+		serviceRefs.put(name, serviceRef);
 		serviceRef.tell(RepeatMessage.instance, ServiceRef.NO_SENDER);
 	}
 
@@ -152,7 +152,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 
 	@Override
 	public void stop(ServiceRef ref) {
-		ServiceRef r = serviceRefs.remove(ref);
+		ServiceRef r = serviceRefs.remove(ref.name());
 		if (r == null) {
 			return;
 		}
@@ -195,7 +195,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	public void registerFactory(DynamicServiceFactory factory) {
 		Service service = new DynamicCreatorService(factory, system, this, factory.service());
 		ServiceRef serviceRef = system.serviceFor(service, factory.service());
-		serviceRefs.put(serviceRef, serviceRef);
+		serviceRefs.put(serviceRef.name(), serviceRef);
 	}
 
 }

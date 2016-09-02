@@ -49,6 +49,15 @@ configure(subprojects) { project ->
 	compileJava.options.encoding = ext["encoding"];
 	compileTestJava.options.encoding = ext["encoding"];
 	
+	task sourcesJar(type: Jar, dependsOn: classes) {
+	    classifier = 'sources'
+	    from sourceSets.main.allSource
+	}
+	
+	artifacts {
+	    archives sourcesJar
+	}
+	
 	dependencies{
 		testCompile ("junit:junit:${junitVersion}")
 	}

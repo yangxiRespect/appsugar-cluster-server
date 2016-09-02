@@ -47,7 +47,13 @@ public class ServiceDefination {
 	@PostConstruct
 	public void init() {
 		Map<Class<?>, Object> servesMap = new HashMap<>();
-		serves.stream().forEach(e -> servesMap.put(getServeInterface(e), e));
+		serves.stream().forEach(e -> {
+			Object target = e;
+			if (AopUtils.isAopProxy(target)) {
+				target=new SpringProxyServer(target);
+			}
+			servesMap.put(getServeInterface(e), target);
+		});
 		Map<String, Map<Class<?>, Object>> groupByServiceName = servesMap.entrySet().stream()
 				.collect(Collectors.groupingBy(e -> RPCSystemUtil.getServiceName(e.getKey()),
 						Collectors.toMap(Entry::getKey, Entry::getValue)));
