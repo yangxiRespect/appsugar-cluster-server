@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.akka.share;
 
+import org.appsugar.cluster.service.akka.domain.ClusterStatus;
+
 import akka.cluster.Member;
 
 /**

@@ -3,7 +3,7 @@ package org.appsugar.cluster.service.binding;
 import java.lang.reflect.Method;
 
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
-import org.appsugar.cluster.service.api.Status;
+import org.appsugar.cluster.service.domain.Status;
 
 /**
  * 服务完成方法执行帮助

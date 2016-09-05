@@ -8,16 +8,16 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.appsugar.cluster.service.akka.domain.ClusterStatus;
 import org.appsugar.cluster.service.akka.share.ActorShareSystem;
-import org.appsugar.cluster.service.akka.share.ClusterStatus;
 import org.appsugar.cluster.service.api.Cancellable;
 import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.ServiceStatusListener;
-import org.appsugar.cluster.service.api.Status;
-import org.appsugar.cluster.service.api.SubscribeMessage;
+import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.domain.SubscribeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +34,7 @@ import scala.concurrent.duration.Duration;
 /**
  * akka服务集群系统
  * @author NewYoung
- * 2016年5月30日下午2:58:10
+ * 2016年5月30日下午2:58:10 
  */
 public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);

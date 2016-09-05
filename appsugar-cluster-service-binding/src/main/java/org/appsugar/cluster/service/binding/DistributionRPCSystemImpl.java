@@ -13,11 +13,15 @@ import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
-import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
-import org.appsugar.cluster.service.api.ServiceException;
 import org.appsugar.cluster.service.api.ServiceListener;
 import org.appsugar.cluster.service.api.ServiceRef;
-import org.appsugar.cluster.service.api.Status;
+import org.appsugar.cluster.service.domain.DynamicServiceRequest;
+import org.appsugar.cluster.service.domain.RepeatMessage;
+import org.appsugar.cluster.service.domain.ServiceException;
+import org.appsugar.cluster.service.domain.ServiceStatusMessage;
+import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.util.RPCSystemUtil;
+import org.appsugar.cluster.service.util.ServiceContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +146,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 
 	@Override
 	public void publish(Object msg, String topic) {
-		ServiceContext context = ServiceContextThreadLocal.context();
+		ServiceContext context = ServiceContextUtil.context();
 		ServiceRef ref = null;
 		if (context != null) {
 			ref = context.self();

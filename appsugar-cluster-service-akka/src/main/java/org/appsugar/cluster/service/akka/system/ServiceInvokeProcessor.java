@@ -1,7 +1,7 @@
 package org.appsugar.cluster.service.akka.system;
 
 import org.appsugar.cluster.service.api.Service;
-import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
+import org.appsugar.cluster.service.util.ServiceContextUtil;
 
 /**
  * 服务调用处理器,把所有消息交给service处理
@@ -20,7 +20,7 @@ public class ServiceInvokeProcessor implements MessageProcessor {
 
 	@Override
 	public Object process(ProcessorContext pctx, Object msg) throws Throwable {
-		return service.handle(msg, ServiceContextThreadLocal.context());
+		return service.handle(msg, ServiceContextUtil.context());
 	}
 
 }

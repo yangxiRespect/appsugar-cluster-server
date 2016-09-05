@@ -5,10 +5,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.appsugar.cluster.service.api.FutureMessage;
-import org.appsugar.cluster.service.api.ServiceContextThreadLocal;
-import org.appsugar.cluster.service.api.ServiceException;
+import org.appsugar.cluster.service.akka.domain.AskPatternEvent;
 import org.appsugar.cluster.service.api.ServiceRef;
+import org.appsugar.cluster.service.domain.FutureMessage;
+import org.appsugar.cluster.service.domain.ServiceException;
+import org.appsugar.cluster.service.util.ServiceContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +58,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 		}
 		try {
 			CompletableFuture<T> future = new CompletableFuture<T>();
-			AkkaServiceContext context = (AkkaServiceContext) ServiceContextThreadLocal.context();
+			AkkaServiceContext context = (AkkaServiceContext) ServiceContextUtil.context();
 			if (context != null && context.self().destination.equals(destination)) {
 				//服务调用自己,直接发送
 				ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
@@ -90,7 +91,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 			}
 			success.accept(r);
 		};
-		AkkaServiceContext context = (AkkaServiceContext) ServiceContextThreadLocal.context();
+		AkkaServiceContext context = (AkkaServiceContext) ServiceContextUtil.context();
 		ActorRef sender = askPatternRef;
 		if (context != null) {
 			//如果在服务执行上下文中, 那么该请求转发至该服务中处理

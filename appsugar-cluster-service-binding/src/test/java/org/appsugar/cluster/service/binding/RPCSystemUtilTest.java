@@ -4,12 +4,13 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
-import org.appsugar.cluster.service.api.Status;
-import org.appsugar.cluster.service.api.annotation.ExecuteDefault;
-import org.appsugar.cluster.service.api.annotation.ExecuteOnEvent;
-import org.appsugar.cluster.service.api.annotation.ExecuteOnServiceReady;
-import org.appsugar.cluster.service.api.annotation.ExecuteRepeat;
-import org.appsugar.cluster.service.api.annotation.Service;
+import org.appsugar.cluster.service.annotation.ExecuteDefault;
+import org.appsugar.cluster.service.annotation.ExecuteOnEvent;
+import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
+import org.appsugar.cluster.service.annotation.ExecuteRepeat;
+import org.appsugar.cluster.service.annotation.Service;
+import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.util.RPCSystemUtil;
 import org.junit.Assert;
 import org.junit.Test;
 

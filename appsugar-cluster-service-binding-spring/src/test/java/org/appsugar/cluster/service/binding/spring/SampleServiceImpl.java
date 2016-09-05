@@ -1,8 +1,8 @@
 package org.appsugar.cluster.service.binding.spring;
 
-import org.appsugar.cluster.service.api.Status;
-import org.appsugar.cluster.service.api.annotation.ExecuteOnServiceReady;
+import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.binding.spring.service.ProductService;
+import org.appsugar.cluster.service.domain.Status;
 
 public class SampleServiceImpl implements SampleService {
 

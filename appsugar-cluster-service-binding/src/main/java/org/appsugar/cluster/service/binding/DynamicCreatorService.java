@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import org.appsugar.cluster.service.api.CompletableFutureUtil;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
 import org.appsugar.cluster.service.api.Service;
@@ -13,7 +12,12 @@ import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceRef;
-import org.appsugar.cluster.service.api.Status;
+import org.appsugar.cluster.service.domain.DynamicServiceCreateMessage;
+import org.appsugar.cluster.service.domain.DynamicServiceRequest;
+import org.appsugar.cluster.service.domain.ServiceStatusMessage;
+import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.util.CompletableFutureUtil;
+import org.appsugar.cluster.service.util.RPCSystemUtil;
 
 /**
  * 动态创建服务

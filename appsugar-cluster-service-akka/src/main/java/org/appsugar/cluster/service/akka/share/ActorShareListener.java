@@ -2,6 +2,9 @@ package org.appsugar.cluster.service.akka.share;
 
 import java.util.List;
 
+import org.appsugar.cluster.service.akka.domain.ActorShare;
+import org.appsugar.cluster.service.akka.domain.ClusterStatus;
+
 /**
  * actor共享消息监听器
  * @author NewYoung

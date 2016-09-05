@@ -1,6 +1,6 @@
 package org.appsugar.cluster.service.akka.system;
 
-import org.appsugar.cluster.service.api.FutureMessage;
+import org.appsugar.cluster.service.domain.FutureMessage;
 
 /**
  * 异步消息执行处理器

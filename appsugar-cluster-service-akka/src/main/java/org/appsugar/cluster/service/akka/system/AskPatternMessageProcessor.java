@@ -9,7 +9,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.appsugar.cluster.service.api.ServiceException;
+import org.appsugar.cluster.service.akka.domain.AskPatternEvent;
+import org.appsugar.cluster.service.akka.domain.AskPatternException;
+import org.appsugar.cluster.service.akka.domain.AskPatternRequest;
+import org.appsugar.cluster.service.akka.domain.AskPatternResponse;
+import org.appsugar.cluster.service.akka.domain.RepeatEvent;
+import org.appsugar.cluster.service.akka.domain.RequestMarker;
+import org.appsugar.cluster.service.domain.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

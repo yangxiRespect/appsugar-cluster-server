@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.api;
 
+import org.appsugar.cluster.service.domain.Status;
+
 /**
  * 服务状态监听
  * @author NewYoung

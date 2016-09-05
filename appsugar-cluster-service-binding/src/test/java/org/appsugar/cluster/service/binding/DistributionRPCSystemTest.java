@@ -5,14 +5,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
+import org.appsugar.cluster.service.annotation.DynamicService;
+import org.appsugar.cluster.service.annotation.ExecuteDefault;
+import org.appsugar.cluster.service.annotation.ExecuteOnEvent;
+import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
+import org.appsugar.cluster.service.annotation.Service;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
-import org.appsugar.cluster.service.api.Status;
-import org.appsugar.cluster.service.api.annotation.DynamicService;
-import org.appsugar.cluster.service.api.annotation.ExecuteDefault;
-import org.appsugar.cluster.service.api.annotation.ExecuteOnEvent;
-import org.appsugar.cluster.service.api.annotation.ExecuteOnServiceReady;
-import org.appsugar.cluster.service.api.annotation.Service;
+import org.appsugar.cluster.service.domain.Status;
 import org.junit.Assert;
 import org.junit.Test;
 
