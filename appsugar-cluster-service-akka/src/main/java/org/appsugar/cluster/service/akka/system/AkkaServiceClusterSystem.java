@@ -40,6 +40,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
+	//TODO use Guava BiMap instead of this?
 	private Map<Service, AkkaServiceRef> localServices = new ConcurrentHashMap<>();
 	private Map<AkkaServiceRef, Service> refMapService = new ConcurrentHashMap<>();
 	private Map<String, AkkaServiceClusterRef> serviceClusterRefs = new ConcurrentHashMap<>();

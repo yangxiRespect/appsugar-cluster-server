@@ -54,7 +54,7 @@ public interface DistributionRPCSystem {
 	/**
 	 *停用一个服务
 	 */
-	void stop(ServiceRef ref);
+	void stop(String name);
 
 	/**
 	 * 关闭服务

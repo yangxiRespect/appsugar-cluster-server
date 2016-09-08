@@ -155,12 +155,12 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	}
 
 	@Override
-	public void stop(ServiceRef ref) {
-		ServiceRef r = serviceRefs.remove(ref.name());
+	public void stop(String name) {
+		ServiceRef r = serviceRefs.remove(name);
 		if (r == null) {
 			return;
 		}
-		system.stop(ref);
+		system.stop(r);
 	}
 
 	protected void notifyServiceListener(String name, Status s) {
