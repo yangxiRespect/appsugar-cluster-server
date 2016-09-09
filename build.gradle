@@ -104,6 +104,7 @@ project(":appsugar-cluster-service-binding-spring"){
 	dependencies{
 		compile project(":appsugar-cluster-service-binding")
 		compileOnly("org.springframework:spring-context:${springVersion}")
+		testCompile("org.springframework:spring-context:${springVersion}")
 		testCompile ("org.springframework:spring-test:${springVersion}")
 	}
 }

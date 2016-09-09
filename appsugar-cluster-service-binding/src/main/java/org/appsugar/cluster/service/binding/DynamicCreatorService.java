@@ -110,11 +110,7 @@ public class DynamicCreatorService implements Service {
 			return "Service Already Exist";
 		}
 		ServiceRef creator = clusterRef.balance(banlance++);
-		CompletableFuture<Object> result = new CompletableFuture<>();
-		docker.inquire(new ServiceCreateParam(creator, ctx, sequence), (r, e) -> {
-			CompletableFutureUtil.completeNormalOrThrowable(result, r, e);
-		});
-		return result;
+		return docker.inquire(new ServiceCreateParam(creator, ctx, sequence));
 	}
 
 	/**
