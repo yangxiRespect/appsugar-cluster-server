@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.binding.spring;
 
 import org.appsugar.cluster.service.binding.ProxyServer;
+import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 
 /**
@@ -24,7 +25,11 @@ public class SpringProxyServer implements ProxyServer {
 
 	@Override
 	public Object getObject() {
-		return target;
+		try {
+			return AopUtils.isJdkDynamicProxy(target) ? ((Advised) target).getTargetSource().getTarget() : target;
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
 	}
 
 }
