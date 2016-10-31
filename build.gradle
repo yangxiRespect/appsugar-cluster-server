@@ -1,5 +1,8 @@
 buildscript {	
 	repositories {
+		maven{
+			url "http://maven.aliyun.com/nexus/content/groups/public"
+		}
 		mavenCentral()
 		mavenLocal()
 		jcenter()
@@ -30,6 +33,9 @@ configure(subprojects) { project ->
 	sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 	repositories {
+		maven{
+			url "http://maven.aliyun.com/nexus/content/groups/public"
+		}
 		mavenCentral()
 		mavenLocal()
 	}
@@ -40,7 +46,7 @@ configure(subprojects) { project ->
 		slf4jVersion = "1.7.21"
 		junitVersion = "4.12"
 		logbackVersion = "1.1.7"
-		akkaVersion = "2.4.10"
+		akkaVersion = "2.4.11"
 		fstVersion = "2.48"
 		protostuffVersion = "1.4.4"
 		appsugarVersion = "2.0.5-SNAPSHOT"
