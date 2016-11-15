@@ -48,8 +48,7 @@ configure(subprojects) { project ->
 		logbackVersion = "1.1.7"
 		akkaVersion = "2.4.12"
 		fstVersion = "2.48"
-		protostuffVersion = "1.4.4"
-		appsugarVersion = "2.0.5-SNAPSHOT"
+		protostuffVersion = "1.5.2"
 		springVersion = "4.2.6.RELEASE"
 	}
 	compileJava.options.encoding = ext["encoding"];
