@@ -64,8 +64,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		if (proxyCache.containsKey(ic)) {
 			return (T) proxyCache.get(ic);
 		}
-		T result = (T) Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(), new Class[] { ic },
-				new ServiceInvokeHandler(system, ic));
+		T result = createService(ic, RPCSystemUtil.getServiceName(ic));
 		proxyCache.put(ic, result);
 		return result;
 	}
@@ -109,8 +108,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		if (instance != null) {
 			return instance;
 		}
-		instance = (T) Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(), new Class[] { ic },
-				new ServiceInvokeHandler(system, ic, dynamicServiceName));
+		instance = createService(ic, dynamicServiceName);
 		serviceProxyCache.put(ic, instance);
 		return instance;
 	}
@@ -202,4 +200,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		serviceRefs.put(serviceRef.name(), serviceRef);
 	}
 
+	@SuppressWarnings("unchecked")
+	protected <T> T createService(Class<T> ic, String serviceName) {
+		return (T) Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),
+				new Class[] { ic, DistributionServiceInvocation.class },
+				new ServiceInvokeHandler(system, ic, serviceName));
+	}
 }

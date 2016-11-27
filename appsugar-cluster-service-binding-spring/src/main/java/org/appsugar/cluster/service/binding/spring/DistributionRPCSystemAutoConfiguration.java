@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.appsugar.cluster.service.annotation.Service;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
+import org.appsugar.cluster.service.binding.DistributionServiceInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
@@ -51,7 +52,7 @@ public class DistributionRPCSystemAutoConfiguration
 		if (bean instanceof DynamicServiceFactory) {
 			factoryList.add((DynamicServiceFactory) bean);
 			logger.info("detected DynamicServiceFactory {}", bean);
-		} else if (AnnotationUtils.findAnnotation(AopUtils.getTargetClass(bean), Service.class) != null) {
+		} else if (bean instanceof Service && !(bean instanceof DistributionServiceInvocation)) {
 			serviceList.add(bean);
 			logger.info("detected Service  {}", bean);
 		}
