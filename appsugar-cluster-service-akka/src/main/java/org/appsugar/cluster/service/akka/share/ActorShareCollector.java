@@ -22,6 +22,7 @@ import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent.MemberRemoved;
 import akka.cluster.ClusterEvent.MemberUp;
 import akka.cluster.ClusterEvent.UnreachableMember;
+import akka.cluster.Member;
 
 /**
  * actor共享收集器
@@ -68,9 +69,13 @@ public class ActorShareCollector extends UntypedActor {
 			if (msg instanceof MemberUp) {
 				memberListener.handle(((MemberUp) msg).member(), ClusterStatus.UP);
 			} else if (msg instanceof MemberRemoved) {
-				memberListener.handle(((MemberRemoved) msg).member(), ClusterStatus.DOWN);
+				Member member = ((MemberRemoved) msg).member();
+				memberListener.handle(member, ClusterStatus.DOWN);
+
 			} else if (msg instanceof UnreachableMember) {
-				memberListener.handle(((UnreachableMember) msg).member(), ClusterStatus.DOWN);
+				Member member = ((UnreachableMember) msg).member();
+				memberListener.handle(member, ClusterStatus.DOWN);
+				whenMemberDown(member);
 			} //处理共享actor消息
 			else if (msg instanceof ActorClusterShareMessage) {
 				ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;
@@ -89,6 +94,11 @@ public class ActorShareCollector extends UntypedActor {
 		} catch (Throwable ex) {
 			logger.error("process akka cluster member event error {}", ex);
 		}
+	}
+
+	protected void whenMemberDown(Member member) {
+		logger.info("manually leave member {}", member.address());
+		cluster.down(member.address());
 	}
 
 	/**

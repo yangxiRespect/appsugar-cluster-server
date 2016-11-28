@@ -31,13 +31,14 @@ public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPC
 		Config config = ConfigFactory.load();
 		if (configs != null) {
 			String[] configArray = configs.split(",");
-			for (int i = 1; i < configArray.length; i++) {
+			for (int i = 0; i < configArray.length; i++) {
 				String resource = configArray[i];
 				try {
 					File file = new File(resource);
+					logger.debug("load akka resource {}  is local file {}", resource, file.isFile());
 					Config resourceConfig = file.isFile() ? ConfigFactory.parseFile(file)
 							: ConfigFactory.parseResources(resource);
-					config = resourceConfig.withFallback(config);
+					config = resourceConfig.resolve().withFallback(config);
 				} catch (Exception ex) {
 					logger.warn("akka config resource not found {} ({})", resource, ex.getMessage());
 				}
