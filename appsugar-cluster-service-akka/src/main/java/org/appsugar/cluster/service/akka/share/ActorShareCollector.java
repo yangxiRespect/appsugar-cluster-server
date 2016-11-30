@@ -15,6 +15,8 @@ import org.appsugar.cluster.service.akka.domain.LocalShareMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
@@ -35,6 +37,9 @@ import akka.cluster.Member;
 public class ActorShareCollector extends UntypedActor {
 
 	public static final Logger logger = LoggerFactory.getLogger(ActorShareCollector.class);
+
+	public static final String AUTO_DOWN_UNREACHEABLE_KEY = "akka.actor.share.auto-down";
+
 	private ClusterMemberListener memberListener;
 	private ActorShareListener actorShareListener;
 	private Set<ActorRef> watchList = new HashSet<>();
@@ -42,11 +47,17 @@ public class ActorShareCollector extends UntypedActor {
 	private Cluster cluster = Cluster.get(getContext().system());
 	private List<Class<?>> clusterSubscribeTypeList = Arrays.asList(MemberUp.class, MemberRemoved.class,
 			UnreachableMember.class);
+	private boolean autoDown = false;
 
 	public ActorShareCollector(ClusterMemberListener memberListener, ActorShareListener actorShareListener) {
 		super();
 		this.memberListener = memberListener;
 		this.actorShareListener = actorShareListener;
+		Config config = getContext().system().settings().config();
+		if (config.hasPath(AUTO_DOWN_UNREACHEABLE_KEY)) {
+			autoDown = config.getBoolean(AUTO_DOWN_UNREACHEABLE_KEY);
+		}
+		logger.debug("Cluster member auto down is {}", autoDown);
 	}
 
 	@Override
@@ -75,7 +86,9 @@ public class ActorShareCollector extends UntypedActor {
 			} else if (msg instanceof UnreachableMember) {
 				Member member = ((UnreachableMember) msg).member();
 				memberListener.handle(member, ClusterStatus.DOWN);
-				whenMemberDown(member);
+				if (autoDown) {
+					whenMemberDown(member);
+				}
 			} //处理共享actor消息
 			else if (msg instanceof ActorClusterShareMessage) {
 				ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;

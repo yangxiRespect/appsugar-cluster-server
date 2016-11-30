@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.domain;
 
+import java.io.Serializable;
+
 /**
  * 键值对
  * @author NewYoung
@@ -7,7 +9,8 @@ package org.appsugar.cluster.service.domain;
  * @param <K>
  * @param <V>
  */
-public class KeyValue<K, V> {
+public class KeyValue<K, V> implements Serializable {
+	private static final long serialVersionUID = -7042898627294646413L;
 	private K key;
 	private V value;
 

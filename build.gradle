@@ -9,6 +9,11 @@ buildscript {
 	}
 		
 }
+plugins {
+	//gradle release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=1.0.0-release -Prelease.newVersion=1.0.1-SNAPSHOT
+    id 'net.researchgate.release' version '2.4.0'
+}
+apply plugin: 'java'
 //load properties from config file
 def loadGroovyConfig(p){
 		if(p == null){
@@ -25,6 +30,8 @@ def loadGroovyConfig(p){
 def env = loadGroovyConfig("base")
 env.putAll(loadGroovyConfig(System.getProperty("profile")))
 env.putAll(System.properties)
+
+
 
 configure(subprojects) { project ->
 	apply plugin: "java"
@@ -46,7 +53,7 @@ configure(subprojects) { project ->
 		slf4jVersion = "1.7.21"
 		junitVersion = "4.12"
 		logbackVersion = "1.1.7"
-		akkaVersion = "2.4.12"
+		akkaVersion = "2.4.14"
 		fstVersion = "2.48"
 		protostuffVersion = "1.5.2"
 		springVersion = "4.2.6.RELEASE"
@@ -77,6 +84,21 @@ configure(subprojects) { project ->
 			showStandardStreams  = true
 		}
 	}
+	//deploy to  nexus
+	uploadArchives {
+	    repositories {
+	       mavenDeployer {
+             repository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/releases") {
+            	 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")
+			 }
+			 snapshotRepository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/snapshots") {
+                 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")  
+             }  
+	       }
+	    }
+	}
+	build.dependsOn install
+	rootProject.tasks.afterReleaseBuild.dependsOn uploadArchives
 }
 
 
@@ -89,9 +111,9 @@ project(":appsugar-cluster-service-akka"){
 		compile project(":appsugar-cluster-service-api")
 		compile("ch.qos.logback:logback-classic:${logbackVersion}")
 		compile("org.slf4j:slf4j-api:${slf4jVersion}")
-		compile("com.typesafe.akka:akka-cluster_2.11:${akkaVersion}")
-		compile("com.typesafe.akka:akka-cluster-tools_2.11:${akkaVersion}")
-		compile("com.typesafe.akka:akka-cluster-metrics_2.11:${akkaVersion}")
+		compile("com.typesafe.akka:akka-cluster_2.12:${akkaVersion}")
+		compile("com.typesafe.akka:akka-cluster-tools_2.12:${akkaVersion}")
+		compile("com.typesafe.akka:akka-cluster-metrics_2.12:${akkaVersion}")
 		compile("de.ruedigermoeller:fst:${fstVersion}")
 		compile("io.protostuff:protostuff-core:${protostuffVersion}")
 		compile("io.protostuff:protostuff-runtime:${protostuffVersion}")

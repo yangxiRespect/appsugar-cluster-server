@@ -1,11 +1,15 @@
 package org.appsugar.cluster.service.domain;
 
+import java.io.Serializable;
+
 /**
  * 方法调用优化结果消息
  * @author NewYoung
  * 2016年6月12日上午10:04:50
  */
-public class MethodInvokeOptimizingResponse {
+public class MethodInvokeOptimizingResponse implements Serializable {
+
+	private static final long serialVersionUID = 2981299329008091576L;
 
 	private int sequence;
 
