@@ -1,6 +1,8 @@
 package org.appsugar.cluster.service.binding;
 
 import java.lang.reflect.Proxy;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -125,11 +127,18 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	}
 
 	@Override
-	public void serviceFor(Map<Class<?>, ?> serves, String name) {
+	public void serviceFor(Map<Class<?>, ?> serves, String name, boolean local) {
 		Service service = new RPCService(system, this, serves);
-		ServiceRef serviceRef = system.serviceFor(service, name);
+		ServiceRef serviceRef = system.serviceFor(service, name, local);
 		serviceRefs.put(name, serviceRef);
+		//初始化服务
 		serviceRef.tell(RepeatMessage.instance, ServiceRef.NO_SENDER);
+	}
+
+	@Override
+	public void serviceFor(Map<Class<?>, ?> serves, String name) {
+		//只要有一个为远程服务,那么就共享该服务
+		serviceFor(serves, name, false);
 	}
 
 	@Override
@@ -205,5 +214,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		return (T) Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),
 				new Class[] { ic, DistributionServiceInvocation.class },
 				new ServiceInvokeHandler(system, ic, serviceName));
+	}
+
+	@Override
+	public Collection<ServiceRef> serviceRefs() {
+		return Collections.unmodifiableCollection(serviceRefs.values());
 	}
 }

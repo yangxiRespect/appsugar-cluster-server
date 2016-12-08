@@ -50,14 +50,24 @@ public class ServiceDefination {
 		serves.stream().forEach(e -> {
 			Object target = e;
 			if (AopUtils.isAopProxy(target)) {
-				target=new SpringProxyServer(target);
+				target = new SpringProxyServer(target);
 			}
 			servesMap.put(getServeInterface(e), target);
 		});
 		Map<String, Map<Class<?>, Object>> groupByServiceName = servesMap.entrySet().stream()
 				.collect(Collectors.groupingBy(e -> RPCSystemUtil.getServiceName(e.getKey()),
 						Collectors.toMap(Entry::getKey, Entry::getValue)));
-		groupByServiceName.entrySet().stream().forEach(e -> system.serviceFor(e.getValue(), e.getKey()));
+		groupByServiceName.entrySet().stream().forEach(e -> {
+			boolean local = true;
+			for (Class<?> c : e.getValue().keySet()) {
+				Service s = c.getAnnotation(Service.class);
+				if (s.local()) {
+					continue;
+				}
+				local = false;
+			}
+			system.serviceFor(e.getValue(), e.getKey(), local);
+		});
 
 	}
 

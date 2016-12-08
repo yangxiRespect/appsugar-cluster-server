@@ -17,11 +17,26 @@ public class LocalShareMessage {
 	//共享完成后future回调
 	private CompletableFuture<Boolean> future;
 
+	private boolean local;
+
 	public LocalShareMessage(String name, ActorRef ref, CompletableFuture<Boolean> future) {
+		this(name, ref, future, false);
+	}
+
+	public LocalShareMessage(String name, ActorRef ref, CompletableFuture<Boolean> future, boolean local) {
 		super();
 		this.name = name;
 		this.ref = ref;
 		this.future = future;
+		this.local = local;
+	}
+
+	public boolean isLocal() {
+		return local;
+	}
+
+	public void setLocal(boolean local) {
+		this.local = local;
 	}
 
 	public String getName() {
@@ -52,7 +67,7 @@ public class LocalShareMessage {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("LocalShareMessage [name=").append(name).append(", ref=").append(ref).append(", future=")
-				.append(future).append("]");
+				.append(future).append(", local=").append(local).append("]");
 		return builder.toString();
 	}
 

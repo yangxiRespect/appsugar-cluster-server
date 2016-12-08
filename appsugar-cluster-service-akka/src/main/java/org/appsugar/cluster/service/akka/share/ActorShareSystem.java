@@ -46,7 +46,16 @@ public class ActorShareSystem {
 	 * @param name actor名称
 	 */
 	public CompletableFuture<Boolean> share(ActorRef ref, String name) {
-		return shareCenter.share(ref, name);
+		return share(ref, name, false);
+	}
+
+	/**
+	 * 共享actor
+	 * @param ref actor引用
+	 * @param name actor名称
+	 */
+	public CompletableFuture<Boolean> share(ActorRef ref, String name, boolean local) {
+		return shareCenter.share(ref, name, local);
 	}
 
 }

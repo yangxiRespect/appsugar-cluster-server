@@ -16,6 +16,7 @@ public class ActorShare implements Serializable {
 	 * 自定义名称
 	 */
 	private String name;
+
 	/**
 	 * actor引用
 	 * 禁止把actor引用已属性的方式在 cluster中传播
@@ -23,9 +24,19 @@ public class ActorShare implements Serializable {
 	 */
 	private transient ActorRef actorRef;
 
-	public ActorShare(String name) {
+	/**
+	 * 是否为本地服务
+	 */
+	private transient boolean local;
+
+	public ActorShare(String name, boolean local) {
 		super();
 		this.name = name;
+		this.local = local;
+	}
+
+	public ActorShare(String name) {
+		this(name, false);
 	}
 
 	public ActorShare() {
@@ -46,6 +57,14 @@ public class ActorShare implements Serializable {
 
 	public void setActorRef(ActorRef actorRef) {
 		this.actorRef = actorRef;
+	}
+
+	public boolean isLocal() {
+		return local;
+	}
+
+	public void setLocal(boolean local) {
+		this.local = local;
 	}
 
 	@Override
@@ -82,7 +101,7 @@ public class ActorShare implements Serializable {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ActorShare [name=").append(name).append(", actorRef=").append(actorRef).append("]");
+		builder.append("ActorShare [name=").append(name).append(", local=").append(local).append("]");
 		return builder.toString();
 	}
 

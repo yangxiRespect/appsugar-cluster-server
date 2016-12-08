@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.api;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -37,6 +38,11 @@ public interface DistributionRPCSystem {
 	void serviceFor(Map<Class<?>, ?> serves, String name);
 
 	/**
+	 * 根据接口类与对应实现类和服务名称,创建服务
+	 */
+	void serviceFor(Map<Class<?>, ?> serves, String name, boolean local);
+
+	/**
 	 * 添加一个服务监听器
 	 */
 	boolean addServiceListener(ServiceListener listener);
@@ -65,5 +71,13 @@ public interface DistributionRPCSystem {
 	 * 注册服务提供工厂
 	 */
 	void registerFactory(DynamicServiceFactory factory);
+
+	/**
+	 * 返回服务所有服务引用
+	 * 结果不允许修改
+	 * @author NewYoung
+	 * 2016年12月5日下午4:03:07
+	 */
+	Collection<ServiceRef> serviceRefs();
 
 }

@@ -126,7 +126,7 @@ public class ActorShareCollector extends UntypedActor {
 			return;
 		}
 		String name = msg.getName();
-		ActorShare actorShare = new ActorShare(name);
+		ActorShare actorShare = new ActorShare(name, msg.isLocal());
 		actorShare.setActorRef(ref);
 		try {
 			actorShareListener.handle(Arrays.asList(actorShare), ClusterStatus.UP);

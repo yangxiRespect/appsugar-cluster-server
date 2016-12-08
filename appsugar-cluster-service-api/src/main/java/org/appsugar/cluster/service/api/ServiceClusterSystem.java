@@ -9,12 +9,19 @@ package org.appsugar.cluster.service.api;
 public interface ServiceClusterSystem extends SubPubClusterSystem {
 
 	/**
+	 * serviceFor(service,name,flase);
+	 * {@link ServiceClusterSystem#serviceFor(Service, String, boolean)}
+	 */
+	ServiceRef serviceFor(Service service, String name);
+
+	/**
 	 * 向服务中心注册一个服务
 	 * @param service 服务instance,一个instance只允许注册一次
 	 * @param name 服务名称
+	 * @param local  是否为本地服务
 	 * @return 返回注册后,该服务的引用
 	 */
-	ServiceRef serviceFor(Service service, String name);
+	ServiceRef serviceFor(Service service, String name, boolean local);
 
 	/**
 	 * 根据名称搜索服务集群引用

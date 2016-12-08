@@ -118,6 +118,11 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 
 	@Override
 	public ServiceRef serviceFor(Service service, String name) {
+		return serviceFor(service, name, false);
+	}
+
+	@Override
+	public ServiceRef serviceFor(Service service, String name, boolean local) {
 		//臣妾只能做到这了
 		synchronized (name.intern()) {
 			if (localServices.containsKey(service)) {
@@ -130,7 +135,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 			ActorRef ref = system.actorOf(Props.create(ProcessorChainActor.class, chain),
 					actorNameGenerator.getAndIncrement() + "");
 			try {
-				actorShareSystem.share(ref, name).get();
+				actorShareSystem.share(ref, name, local).get();
 				AkkaServiceRef result = actorRefMapping.get(ref);
 				localServices.put(service, result);
 				refMapService.put(result, service);

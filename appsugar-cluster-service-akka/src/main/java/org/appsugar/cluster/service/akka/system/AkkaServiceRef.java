@@ -64,8 +64,9 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 				ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
 				pctx.processNext(new AskPatternEvent<>(msg, future, timeout, destination));
 				return future.get();
+			} else if (context != null) {
+				logger.debug("server ask in sync pattern  this will cause performance  problem");
 			}
-			logger.debug("server ask in sync pattern  this will cause performance  problem");
 			AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
 			askPatternRef.tell(event, ActorRef.noSender());
 			return future.get();

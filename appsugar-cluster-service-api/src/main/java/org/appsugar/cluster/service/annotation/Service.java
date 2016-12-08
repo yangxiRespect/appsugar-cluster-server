@@ -17,4 +17,12 @@ public @interface Service {
 	 * 服务名称
 	 */
 	String value();
+
+	/**
+	 * 是否局部服务
+	 * 如果为true,那么该服务不会暴露到网络中
+	 * @author NewYoung
+	 * 2016年12月2日下午3:00:21
+	 */
+	boolean local() default false;
 }

@@ -85,8 +85,12 @@ public class DynamicCreatorService implements Service {
 			if (e != null) {
 				result.completeExceptionally(e);
 			} else {
-				rpcSystem.serviceFor(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence));
-				result.complete(true);
+				try {
+					rpcSystem.serviceFor(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence));
+					result.complete(true);
+				} catch (Throwable ex) {
+					result.completeExceptionally(ex);
+				}
 			}
 		});
 		return result;

@@ -56,15 +56,22 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	/**
 	 * 共享指定actor
 	 */
-	public CompletableFuture<Boolean> share(ActorRef ref, String name) {
+	public CompletableFuture<Boolean> share(ActorRef ref, String name, boolean local) {
 		logger.debug("prepare share local actor ref {}", ref);
 		if (!ref.path().address().hasLocalScope()) {
 			throw new RuntimeException("actor ref not local  " + ref);
 		}
 		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
 		//逻辑交给共享actor收集器处理
-		shareCollectorRef.tell(new LocalShareMessage(name, ref, future), ActorRef.noSender());
+		shareCollectorRef.tell(new LocalShareMessage(name, ref, future, local), ActorRef.noSender());
 		return future;
+	}
+
+	/**
+	 * 共享指定actor
+	 */
+	public CompletableFuture<Boolean> share(ActorRef ref, String name) {
+		return share(ref, name, false);
 	}
 
 	/**
@@ -85,6 +92,9 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 					localActorRefList.removeAll(actors);
 				}
 				ActorShare actorShare = actors.get(0);
+				if (actorShare.isLocal()) {
+					return;
+				}
 				//告诉所有member,本地actorref 有改变了 
 				members.stream()
 						.forEach(m -> system.actorSelection(m.address() + ACTOR_SHARE_COLLECTOR_PATH).tell(
@@ -92,7 +102,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 								actorShare.getActorRef()));
 			} else {
 				ActorShare actorShare = actors.get(0);
-				List<ActorShare> remoteActorList = getAndCreateShareActorCollection(actorShare.getActorRef().path().address());
+				List<ActorShare> remoteActorList = getAndCreateShareActorCollection(
+						actorShare.getActorRef().path().address());
 				if (ClusterStatus.UP.equals(status)) {
 					remoteActorList.add(actorShare);
 				} else {
@@ -118,8 +129,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			}
 			logger.debug("send local share actor to member {}  actor address {}", m.address(),
 					as.anchorPath().address());
-			//把本地所有共享actor发送给对应member
-			localActorRefList.stream()
+			//把本地所有非局部共享actor发送给对应节点
+			localActorRefList.stream().filter(e -> !e.isLocal())
 					.forEach(l -> as.tell(new ActorClusterShareMessage(ClusterStatus.UP, new ActorShare(l.getName())),
 							l.getActorRef()));
 		} else {
