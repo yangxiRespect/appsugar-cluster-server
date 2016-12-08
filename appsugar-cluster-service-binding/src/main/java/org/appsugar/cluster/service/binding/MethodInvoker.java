@@ -15,8 +15,17 @@ public class MethodInvoker {
 	private Class<?>[] parameterTypes;
 
 	public MethodInvoker(Method method, Object target) {
+		this(method, target, true);
+	}
+
+	public MethodInvoker(Method method, Object target, boolean useRealTarget) {
 		if (target instanceof ProxyServer) {
-			this.target = ((ProxyServer) target).getObject();
+			if (useRealTarget) {
+				this.target = ((ProxyServer) target).getTarget();
+			} else {
+				this.target = ((ProxyServer) target).getObject();
+			}
+
 		} else {
 			this.target = target;
 		}

@@ -21,7 +21,7 @@ public class ServiceStatusHelper {
 	public ServiceStatusHelper(Class<?> interfaceClass, Method method, Object target) {
 		super();
 		this.interfaceClass = interfaceClass;
-		methodInvoker = new MethodInvoker(method, target);
+		methodInvoker = new MethodInvoker(method, target, true);
 	}
 
 	/**

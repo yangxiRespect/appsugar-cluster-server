@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,10 +26,8 @@ public class ActorShareSystemTest extends TestCase {
 		ActorShareSystem shareSystem = ActorShareSystem.getSystem(system, (x, y) -> {
 		});
 		ActorRef ref = system.actorOf(Props.create(TestActor.class), "xx");
-		CompletableFuture<Boolean> result = shareSystem.share(ref, "xx");
-		CompletableFuture<Boolean> result1 = shareSystem.share(ref, "xx");
-		Assert.assertTrue(result.get());
-		Assert.assertFalse(result1.get());
+		CompletableFuture<Void> result = shareSystem.share(ref, "xx");
+		result.get();
 		system.terminate();
 	}
 

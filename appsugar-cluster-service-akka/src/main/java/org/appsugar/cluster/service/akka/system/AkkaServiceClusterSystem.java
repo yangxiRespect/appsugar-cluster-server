@@ -2,7 +2,9 @@ package org.appsugar.cluster.service.akka.system;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -123,27 +125,37 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 
 	@Override
 	public ServiceRef serviceFor(Service service, String name, boolean local) {
-		//臣妾只能做到这了
-		synchronized (name.intern()) {
-			if (localServices.containsKey(service)) {
-				throw new RuntimeException("service already register " + "name " + name);
+		try {
+			return serviceForAsync(service, name, local).get();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	@Override
+	public CompletableFuture<ServiceRef> serviceForAsync(Service service, String name, boolean local) {
+		MessageProcessorChain chain = new MessageProcessorChain(new ServiceContextBindingProcessor(this),
+				new FutureMessageProcessor(), new AskPatternMessageProcessor(), new ServiceInvokeProcessor(service));
+		//创建一个service actor
+		ActorRef ref = system.actorOf(Props.create(ProcessorChainActor.class, chain),
+				actorNameGenerator.getAndIncrement() + "");
+		CompletableFuture<ServiceRef> serviceRefFuture = new CompletableFuture<>();
+		CompletableFuture<Void> future = actorShareSystem.share(ref, name, local);
+		future.whenComplete((r, e) -> {
+			if (Objects.nonNull(e)) {
+				serviceRefFuture.completeExceptionally(new RuntimeException("create service error"));
+				return;
 			}
-			MessageProcessorChain chain = new MessageProcessorChain(new ServiceContextBindingProcessor(this),
-					new FutureMessageProcessor(), new AskPatternMessageProcessor(),
-					new ServiceInvokeProcessor(service));
-			//创建一个service actor
-			ActorRef ref = system.actorOf(Props.create(ProcessorChainActor.class, chain),
-					actorNameGenerator.getAndIncrement() + "");
 			try {
-				actorShareSystem.share(ref, name, local).get();
 				AkkaServiceRef result = actorRefMapping.get(ref);
 				localServices.put(service, result);
 				refMapService.put(result, service);
-				return result;
-			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+				serviceRefFuture.complete(result);
+			} catch (RuntimeException ex) {
+				serviceRefFuture.completeExceptionally(ex);
 			}
-		}
+		});
+		return serviceRefFuture;
 	}
 
 	@Override

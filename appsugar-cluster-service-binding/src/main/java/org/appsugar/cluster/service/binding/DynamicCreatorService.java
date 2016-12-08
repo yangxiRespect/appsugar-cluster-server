@@ -1,7 +1,6 @@
 package org.appsugar.cluster.service.binding;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -14,6 +13,7 @@ import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.domain.DynamicServiceCreateMessage;
 import org.appsugar.cluster.service.domain.DynamicServiceRequest;
+import org.appsugar.cluster.service.domain.ServiceDescriptor;
 import org.appsugar.cluster.service.domain.ServiceStatusMessage;
 import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
@@ -76,24 +76,26 @@ public class DynamicCreatorService implements Service {
 	/**
 	 * 处理服务创建消息
 	 */
-	protected CompletableFuture<Object> handleDynamicServiceCreateMessage(DynamicServiceCreateMessage msg)
+	protected CompletableFuture<Void> handleDynamicServiceCreateMessage(DynamicServiceCreateMessage msg)
 			throws Exception {
 		String sequence = msg.getSequence();
-		CompletableFuture<Map<Class<?>, ?>> future = factory.create(msg.getSequence());
-		CompletableFuture<Object> result = new CompletableFuture<>();
+		CompletableFuture<Void> result = new CompletableFuture<>();
+		//异步创建出服务者
+		CompletableFuture<ServiceDescriptor> future = RPCSystemUtil
+				.wrapContextFuture(factory.create(msg.getSequence()));
 		future.whenComplete((r, e) -> {
 			if (e != null) {
 				result.completeExceptionally(e);
 			} else {
-				try {
-					rpcSystem.serviceFor(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence));
-					result.complete(true);
-				} catch (Throwable ex) {
-					result.completeExceptionally(ex);
-				}
+				//根据服务者,异步创建服务
+				rpcSystem.serviceForAsync(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence))
+						.whenComplete((r1, e1) -> {
+							CompletableFutureUtil.completeNormalOrThrowable(result, r1, e1);
+						});
 			}
 		});
 		return result;
+
 	}
 
 	/**

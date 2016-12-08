@@ -15,15 +15,15 @@ public class LocalShareMessage {
 	//引用
 	private ActorRef ref;
 	//共享完成后future回调
-	private CompletableFuture<Boolean> future;
+	private CompletableFuture<Void> future;
 
 	private boolean local;
 
-	public LocalShareMessage(String name, ActorRef ref, CompletableFuture<Boolean> future) {
+	public LocalShareMessage(String name, ActorRef ref, CompletableFuture<Void> future) {
 		this(name, ref, future, false);
 	}
 
-	public LocalShareMessage(String name, ActorRef ref, CompletableFuture<Boolean> future, boolean local) {
+	public LocalShareMessage(String name, ActorRef ref, CompletableFuture<Void> future, boolean local) {
 		super();
 		this.name = name;
 		this.ref = ref;
@@ -55,11 +55,11 @@ public class LocalShareMessage {
 		this.ref = ref;
 	}
 
-	public CompletableFuture<Boolean> getFuture() {
+	public CompletableFuture<Void> getFuture() {
 		return future;
 	}
 
-	public void setFuture(CompletableFuture<Boolean> future) {
+	public void setFuture(CompletableFuture<Void> future) {
 		this.future = future;
 	}
 

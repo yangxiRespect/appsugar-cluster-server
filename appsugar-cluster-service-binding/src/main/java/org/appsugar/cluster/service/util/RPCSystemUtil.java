@@ -24,8 +24,6 @@ import org.appsugar.cluster.service.domain.FutureMessage;
 import org.appsugar.cluster.service.domain.KeyValue;
 import org.appsugar.cluster.service.domain.ServiceException;
 import org.appsugar.cluster.service.domain.Status;
-import org.appsugar.cluster.service.util.CompletableFutureUtil;
-import org.appsugar.cluster.service.util.ServiceContextUtil;
 
 /**
  * 远程调用帮助类
@@ -33,6 +31,32 @@ import org.appsugar.cluster.service.util.ServiceContextUtil;
  * 2016年6月3日上午7:15:11
  */
 public class RPCSystemUtil {
+
+	/**
+	 * 获取对象服务接口类对象
+	 * <pre>
+	 * 	查找该对象实现接口中是否有 {@link Service} or {@link DynamicService} 注解
+	 * </pre>
+	 * @author NewYoung
+	 * 2016年12月8日下午5:37:09
+	 */
+	public static final Class<?> getServiceClass(Object obj) {
+		Class<?> realClass = obj.getClass();
+		if (obj instanceof ProxyServer) {
+			realClass = ((ProxyServer) obj).getTargetClass();
+		}
+		do {
+			for (Class<?> c : realClass.getInterfaces()) {
+				if (!c.isAnnotationPresent(DynamicService.class) && !c.isAnnotationPresent(Service.class)) {
+					continue;
+				}
+				return c;
+			}
+			realClass = realClass.getSuperclass();
+		} while (realClass != null);
+		throw new ServiceException("Did not found Service Interface annotated with  " + Service.class + "  or "
+				+ DynamicService.class + " " + realClass);
+	}
 
 	/**
 	 * 获取服务名称
@@ -53,7 +77,8 @@ public class RPCSystemUtil {
 	 */
 	public static final List<MethodInvoker> getDefaultInvoker(Map<Class<?>, ?> serves) {
 		return serves.entrySet().stream()
-				.flatMap(e -> getDefaultMethod(e.getValue()).stream().map(m -> new MethodInvoker(m, e.getValue())))
+				.flatMap(
+						e -> getDefaultMethod(e.getValue()).stream().map(m -> new MethodInvoker(m, e.getValue(), true)))
 				.collect(Collectors.toList());
 	}
 
@@ -74,7 +99,7 @@ public class RPCSystemUtil {
 		return serves.entrySet().stream()
 				.flatMap(e -> RPCSystemUtil.getRepeatMethods(e.getValue()).stream()
 						.map(k -> new RepeatInvoker(k.getAnnotation(ExecuteRepeat.class).value(),
-								new MethodInvoker(k, e.getValue()))))
+								new MethodInvoker(k, e.getValue(), true))))
 				.collect(Collectors.toList());
 	}
 
@@ -96,9 +121,11 @@ public class RPCSystemUtil {
 	 */
 	public static final Map<String, List<MethodInvoker>> getEventMethodInvoke(Map<Class<?>, ?> serves) {
 		return serves.entrySet().stream()
-				.flatMap(e -> RPCSystemUtil.getEventMethods(e.getValue()).entrySet().stream()
-						.map(k -> new KeyValue<>(k.getKey(),
-								k.getValue().stream().map(m -> new MethodInvoker(m, serves.get(e.getKey()))))))
+				.flatMap(
+						e -> RPCSystemUtil.getEventMethods(e.getValue()).entrySet().stream()
+								.map(k -> new KeyValue<>(k.getKey(),
+										k.getValue().stream()
+												.map(m -> new MethodInvoker(m, serves.get(e.getKey()), true)))))
 				.flatMap(e -> e.getValue().map(s -> new KeyValue<>(e.getKey(), s))).collect(Collectors
 						.groupingBy(e -> e.getKey(), Collectors.mapping(e -> e.getValue(), Collectors.toList())));
 

@@ -56,12 +56,12 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	/**
 	 * 共享指定actor
 	 */
-	public CompletableFuture<Boolean> share(ActorRef ref, String name, boolean local) {
+	public CompletableFuture<Void> share(ActorRef ref, String name, boolean local) {
 		logger.debug("prepare share local actor ref {}", ref);
 		if (!ref.path().address().hasLocalScope()) {
 			throw new RuntimeException("actor ref not local  " + ref);
 		}
-		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
+		CompletableFuture<Void> future = new CompletableFuture<Void>();
 		//逻辑交给共享actor收集器处理
 		shareCollectorRef.tell(new LocalShareMessage(name, ref, future, local), ActorRef.noSender());
 		return future;
@@ -70,7 +70,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	/**
 	 * 共享指定actor
 	 */
-	public CompletableFuture<Boolean> share(ActorRef ref, String name) {
+	public CompletableFuture<Void> share(ActorRef ref, String name) {
 		return share(ref, name, false);
 	}
 

@@ -75,19 +75,6 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 	}
 
 	@Test
-	public void testServiceFor() {
-		ServiceClusterSystem system = new AkkaServiceClusterSystem("system", ConfigFactory.load("application.conf"));
-		Service service = new SayHelloService();
-		system.serviceFor(service, "x");
-		try {
-			system.serviceFor(service, "x");
-			Assert.fail("same service register twice");
-		} catch (Exception ex) {
-			//DO NOTHING
-		}
-	}
-
-	@Test
 	public void testMultipleSystem() throws Exception {
 		//初始化五个
 		int[] prots = { 2551, 0, 0 };

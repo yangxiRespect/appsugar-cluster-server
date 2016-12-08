@@ -1,7 +1,8 @@
 package org.appsugar.cluster.service.api;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import org.appsugar.cluster.service.domain.ServiceDescriptor;
 
 /**
  * 动态服务工厂
@@ -13,10 +14,13 @@ public interface DynamicServiceFactory {
 	/**
 	 * 根据参数创建服务对象
 	 */
-	public CompletableFuture<Map<Class<?>, ?>> create(String sequence);
+	public CompletableFuture<ServiceDescriptor> create(String sequence);
 
 	/**
 	 * 服务名称
+	 * @author NewYoung
+	 * 2016年12月8日下午3:01:14
 	 */
-	public String service();
+	public String name();
+
 }

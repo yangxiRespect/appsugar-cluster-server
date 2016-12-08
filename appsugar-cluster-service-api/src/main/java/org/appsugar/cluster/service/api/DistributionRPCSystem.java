@@ -2,6 +2,9 @@ package org.appsugar.cluster.service.api;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.appsugar.cluster.service.domain.ServiceDescriptor;
 
 /**
  * 分布式方法调用系统 
@@ -35,12 +38,28 @@ public interface DistributionRPCSystem {
 	/**
 	 * 根据接口类与对应实现类和服务名称,创建对应服务
 	 */
+	@Deprecated
 	void serviceFor(Map<Class<?>, ?> serves, String name);
 
 	/**
 	 * 根据接口类与对应实现类和服务名称,创建服务
 	 */
+	@Deprecated
 	void serviceFor(Map<Class<?>, ?> serves, String name, boolean local);
+
+	/**
+	 * 创建指定服务
+	 * @author NewYoung
+	 * 2016年12月8日下午3:04:15
+	 */
+	void serviceFor(ServiceDescriptor descriptor, String name);
+
+	/**
+	 * 创建指定服务
+	 * @author NewYoung
+	 * 2016年12月8日下午3:04:15
+	 */
+	CompletableFuture<Void> serviceForAsync(ServiceDescriptor descriptor, String name);
 
 	/**
 	 * 添加一个服务监听器

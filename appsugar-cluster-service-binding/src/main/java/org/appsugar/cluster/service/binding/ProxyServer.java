@@ -16,4 +16,11 @@ public interface ProxyServer {
 	 * 获取代理对象
 	 */
 	public Object getObject();
+
+	/**
+	 * 获取实际对象
+	 * @author NewYoung
+	 * 2016年12月8日下午3:29:39
+	 */
+	public Object getTarget();
 }

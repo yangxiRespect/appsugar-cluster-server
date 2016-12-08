@@ -3,13 +3,13 @@ package org.appsugar.cluster.service.binding.spring;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
 import org.appsugar.cluster.service.annotation.Service;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
+import org.appsugar.cluster.service.domain.ServiceDescriptor;
 import org.appsugar.cluster.service.domain.ServiceException;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
 import org.springframework.aop.support.AopUtils;
@@ -47,6 +47,7 @@ public class ServiceDefination {
 	@PostConstruct
 	public void init() {
 		Map<Class<?>, Object> servesMap = new HashMap<>();
+		//处理spring代理对象
 		serves.stream().forEach(e -> {
 			Object target = e;
 			if (AopUtils.isAopProxy(target)) {
@@ -54,20 +55,11 @@ public class ServiceDefination {
 			}
 			servesMap.put(getServeInterface(e), target);
 		});
-		Map<String, Map<Class<?>, Object>> groupByServiceName = servesMap.entrySet().stream()
+		servesMap.entrySet().stream()
 				.collect(Collectors.groupingBy(e -> RPCSystemUtil.getServiceName(e.getKey()),
-						Collectors.toMap(Entry::getKey, Entry::getValue)));
-		groupByServiceName.entrySet().stream().forEach(e -> {
-			boolean local = true;
-			for (Class<?> c : e.getValue().keySet()) {
-				Service s = c.getAnnotation(Service.class);
-				if (s.local()) {
-					continue;
-				}
-				local = false;
-			}
-			system.serviceFor(e.getValue(), e.getKey(), local);
-		});
+						Collectors.mapping(e1 -> e1.getValue(), Collectors.toList())))
+				.entrySet().stream()
+				.forEach(e -> system.serviceForAsync(new ServiceDescriptor(e.getValue()), e.getKey()));
 
 	}
 

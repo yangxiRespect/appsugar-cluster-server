@@ -1,6 +1,8 @@
 package org.appsugar.cluster.service.binding;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -12,6 +14,7 @@ import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.annotation.Service;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
+import org.appsugar.cluster.service.domain.ServiceDescriptor;
 import org.appsugar.cluster.service.domain.Status;
 import org.junit.Assert;
 import org.junit.Test;
@@ -101,14 +104,15 @@ class ProductOperationServiceImpl implements ProductOperationService {
 class ProductOperationServiceServiceFactory implements DynamicServiceFactory {
 
 	@Override
-	public CompletableFuture<Map<Class<?>, ?>> create(String sequence) {
-		Map<Class<?>, Object> result = new HashMap<>();
-		result.put(ProductOperationService.class, new ProductOperationServiceImpl(Long.parseLong(sequence)));
-		return CompletableFuture.completedFuture(result);
+	public CompletableFuture<ServiceDescriptor> create(String sequence) {
+		List<Object> serves = new ArrayList<>();
+		serves.add(new ProductOperationServiceImpl(Long.parseLong(sequence)));
+		ServiceDescriptor descriptor = new ServiceDescriptor(serves, false);
+		return CompletableFuture.completedFuture(descriptor);
 	}
 
 	@Override
-	public String service() {
+	public String name() {
 		return "productCreate";
 	}
 

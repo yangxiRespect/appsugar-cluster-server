@@ -118,11 +118,11 @@ public class ActorShareCollector extends UntypedActor {
 	 * 处理来自本地共享请求
 	 */
 	private void processLocalShareMessage(LocalShareMessage msg) {
-		CompletableFuture<Boolean> future = msg.getFuture();
+		CompletableFuture<Void> future = msg.getFuture();
 		ActorRef ref = msg.getRef();
 		if (watchList.contains(ref)) {
 			logger.warn("current actor ref already shared {}", msg);
-			future.complete(Boolean.FALSE);
+			future.completeExceptionally(new RuntimeException("current actor ref already shared " + msg));
 			return;
 		}
 		String name = msg.getName();
@@ -133,7 +133,7 @@ public class ActorShareCollector extends UntypedActor {
 			watchList.add(ref);
 			localShareMapping.put(ref, actorShare);
 			getContext().watch(ref);
-			future.complete(Boolean.TRUE);
+			future.complete(null);
 		} catch (Exception ex) {
 			future.completeExceptionally(ex);
 			watchList.remove(ref);

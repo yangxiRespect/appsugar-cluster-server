@@ -25,6 +25,11 @@ public class SpringProxyServer implements ProxyServer {
 
 	@Override
 	public Object getObject() {
+		return target;
+	}
+
+	@Override
+	public Object getTarget() {
 		try {
 			return AopUtils.isJdkDynamicProxy(target) ? ((Advised) target).getTargetSource().getTarget() : target;
 		} catch (Exception ex) {

@@ -3,9 +3,11 @@ package org.appsugar.cluster.service.binding;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -19,6 +21,7 @@ import org.appsugar.cluster.service.api.ServiceListener;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.domain.DynamicServiceRequest;
 import org.appsugar.cluster.service.domain.RepeatMessage;
+import org.appsugar.cluster.service.domain.ServiceDescriptor;
 import org.appsugar.cluster.service.domain.ServiceException;
 import org.appsugar.cluster.service.domain.ServiceStatusMessage;
 import org.appsugar.cluster.service.domain.Status;
@@ -142,6 +145,38 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	}
 
 	@Override
+	public void serviceFor(ServiceDescriptor descriptor, String name) {
+		try {
+			serviceForAsync(descriptor, name).get();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	@Override
+	public CompletableFuture<Void> serviceForAsync(ServiceDescriptor descriptor, String name) {
+		Map<Class<?>, Object> servesMap = new HashMap<>();
+		for (Object serve : descriptor.getServes()) {
+			Class<?> interfaceClass = RPCSystemUtil.getServiceClass(serve);
+			servesMap.put(interfaceClass, serve);
+		}
+		Service service = new RPCService(system, this, servesMap);
+		CompletableFuture<Void> result = new CompletableFuture<>();
+		//确保回调在服务上下文中执行
+		RPCSystemUtil.wrapContextFuture(system.serviceForAsync(service, name, descriptor.isLocal()))
+				.whenComplete((r, e) -> {
+					if (Objects.nonNull(e)) {
+						result.completeExceptionally(e);
+						return;
+					}
+					serviceRefs.put(name, r);
+					r.tell(RepeatMessage.instance, ServiceRef.NO_SENDER);
+					result.complete(null);
+				});
+		return result;
+	}
+
+	@Override
 	public boolean addServiceListener(ServiceListener listener) {
 		return serviceListeners.add(listener);
 	}
@@ -204,8 +239,9 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 
 	@Override
 	public void registerFactory(DynamicServiceFactory factory) {
-		Service service = new DynamicCreatorService(factory, system, this, factory.service());
-		ServiceRef serviceRef = system.serviceFor(service, factory.service());
+		String name = factory.name();
+		Service service = new DynamicCreatorService(factory, system, this, name);
+		ServiceRef serviceRef = system.serviceFor(service, name);
 		serviceRefs.put(serviceRef.name(), serviceRef);
 	}
 
@@ -220,4 +256,5 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	public Collection<ServiceRef> serviceRefs() {
 		return Collections.unmodifiableCollection(serviceRefs.values());
 	}
+
 }
