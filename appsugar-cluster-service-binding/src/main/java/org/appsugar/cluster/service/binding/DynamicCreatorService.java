@@ -88,6 +88,7 @@ public class DynamicCreatorService implements Service {
 				result.completeExceptionally(e);
 			} else {
 				//根据服务者,异步创建服务
+				r.setLocal(factory.local());
 				rpcSystem.serviceForAsync(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence))
 						.whenComplete((r1, e1) -> {
 							CompletableFutureUtil.completeNormalOrThrowable(result, r1, e1);

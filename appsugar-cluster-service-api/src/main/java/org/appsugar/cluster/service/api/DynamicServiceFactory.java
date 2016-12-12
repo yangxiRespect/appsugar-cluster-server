@@ -23,4 +23,13 @@ public interface DynamicServiceFactory {
 	 */
 	public String name();
 
+	/**
+	 * 是否本地动态服务工厂
+	 * @author NewYoung
+	 * 2016年12月11日下午2:57:45
+	 */
+	public default boolean local() {
+		return false;
+	}
+
 }

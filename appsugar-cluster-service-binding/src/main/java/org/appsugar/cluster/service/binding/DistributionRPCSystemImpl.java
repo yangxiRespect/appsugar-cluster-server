@@ -241,7 +241,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	public void registerFactory(DynamicServiceFactory factory) {
 		String name = factory.name();
 		Service service = new DynamicCreatorService(factory, system, this, name);
-		ServiceRef serviceRef = system.serviceFor(service, name);
+		ServiceRef serviceRef = system.serviceFor(service, name, factory.local());
 		serviceRefs.put(serviceRef.name(), serviceRef);
 	}
 
