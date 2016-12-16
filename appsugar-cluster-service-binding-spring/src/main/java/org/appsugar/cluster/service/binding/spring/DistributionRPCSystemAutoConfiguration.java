@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.appsugar.cluster.service.annotation.Service;
@@ -39,6 +40,7 @@ public class DistributionRPCSystemAutoConfiguration
 
 	private List<DynamicServiceFactory> factoryList = new ArrayList<>();
 	private List<Object> serviceList = new ArrayList<>();
+	private AtomicBoolean registerFlag = new AtomicBoolean();
 
 	@Autowired
 	private DistributionRPCSystem system;
@@ -76,6 +78,10 @@ public class DistributionRPCSystemAutoConfiguration
 
 	@Override
 	public void onApplicationEvent(ContextRefreshedEvent event) {
+		//make sure init only one time
+		if (!registerFlag.compareAndSet(false, true)) {
+			return;
+		}
 		logger.info("************ContextStartedEvent Prepar to config RPCSystem**************");
 		//注册动态服务工厂
 		logger.info("prepar to register factory {}", factoryList);
