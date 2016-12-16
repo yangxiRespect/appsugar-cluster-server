@@ -101,7 +101,8 @@ public class ActorShare implements Serializable {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ActorShare [name=").append(name).append(", local=").append(local).append("]");
+		builder.append("ActorShare [name=").append(name).append(", actorRef=").append(actorRef).append(", local=")
+				.append(local).append("]");
 		return builder.toString();
 	}
 
