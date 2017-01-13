@@ -50,13 +50,13 @@ configure(subprojects) { project ->
 	env.each{ k, v -> ext.set(k,v)}
 	
 	ext{
-		slf4jVersion = "1.7.21"
 		junitVersion = "4.12"
-		logbackVersion = "1.1.7"
-		akkaVersion = "2.4.14"
+		slf4jVersion = "1.7.22"
+		logbackVersion = "1.1.8"
+		akkaVersion = "2.4.16"
 		fstVersion = "2.48"
 		protostuffVersion = "1.5.2"
-		springVersion = "4.2.6.RELEASE"
+		springVersion = "4.3.5.RELEASE"
 	}
 	compileJava.options.encoding = ext["encoding"];
 	compileTestJava.options.encoding = ext["encoding"];
