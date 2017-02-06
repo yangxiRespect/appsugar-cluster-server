@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Function;
 
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
@@ -90,6 +91,16 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	 */
 	@Override
 	public <T> T serviceOfDynamic(Class<T> ic, String sequence) {
+		return serviceOfDynamic(ic, sequence, ServiceClusterRef::leader, false);
+	}
+
+	@Override
+	public <T> T serviceOfDynamicLocally(Class<T> ic, String sequence) {
+		return serviceOfDynamic(ic, sequence, RPCSystemUtil::getLocalServiceRef, true);
+	}
+
+	public <T> T serviceOfDynamic(Class<T> ic, String sequence, Function<ServiceClusterRef, ServiceRef> masterFunction,
+			boolean location) {
 		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
 		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
 		Map<Class<?>, Object> serviceProxyCache = dynamicProxyCache.get(dynamicServiceName);
@@ -101,14 +112,12 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		if (instance != null) {
 			return instance;
 		}
-		//TODO如果动态服务存在, 直接创建对应代理对象
-
 		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
 		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
 			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
 		}
-		ServiceRef ref = clusterRef.leader();
-		ref.ask(new DynamicServiceRequest(sequence));
+		ServiceRef ref = masterFunction.apply(clusterRef);
+		ref.ask(new DynamicServiceRequest(sequence, location));
 		instance = (T) serviceProxyCache.get(ic);
 		if (instance != null) {
 			return instance;

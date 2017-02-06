@@ -14,6 +14,7 @@ import org.appsugar.cluster.service.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.annotation.ExecuteRepeat;
 import org.appsugar.cluster.service.annotation.Service;
+import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.binding.MethodInvoker;
@@ -243,4 +244,17 @@ public class RPCSystemUtil {
 		return notifyFuture;
 	}
 
+	/**
+	 * 获取本地服务引用
+	 * @author NewYoung
+	 * 2017年2月6日下午6:16:19
+	 */
+	public static ServiceRef getLocalServiceRef(ServiceClusterRef clusterRef) {
+		for (ServiceRef ref : clusterRef.iterable()) {
+			if (ref.hasLocalScope()) {
+				return ref;
+			}
+		}
+		return null;
+	}
 }

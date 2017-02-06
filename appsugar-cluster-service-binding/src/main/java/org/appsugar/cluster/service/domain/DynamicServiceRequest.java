@@ -13,13 +13,24 @@ public class DynamicServiceRequest implements Serializable {
 
 	private String sequence;
 
+	private boolean location;
+
 	public DynamicServiceRequest(String sequence) {
+		this(sequence, false);
+	}
+
+	public DynamicServiceRequest(String sequence, Boolean location) {
 		super();
 		this.sequence = sequence;
+		this.location = location;
 	}
 
 	public String getSequence() {
 		return sequence;
+	}
+
+	public Boolean isLocation() {
+		return location;
 	}
 
 	@Override

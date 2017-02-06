@@ -36,6 +36,12 @@ public interface DistributionRPCSystem {
 	<T> T serviceOfDynamic(Class<T> ic, String sequence);
 
 	/**
+	 * 获取动态服务操作对象
+	 * 如果服务不存在,会请求本地服务创建对应动态服务
+	 */
+	<T> T serviceOfDynamicLocally(Class<T> ic, String sequence);
+
+	/**
 	 * 根据接口类与对应实现类和服务名称,创建对应服务
 	 */
 	@Deprecated

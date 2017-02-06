@@ -104,19 +104,24 @@ public class DynamicCreatorService implements Service {
 	 */
 	protected Object handleDynamicServiceRequest(DynamicServiceRequest msg, ServiceContext ctx) throws Exception {
 		ServiceClusterRef clusterRef = system.serviceOf(name);
-		ServiceRef leader = clusterRef.leader();
-		//如果我不是leader,那么交给leader去管理
-		if (leader != ctx.self()) {
-			CompletableFuture<Object> future = new CompletableFuture<>();
-			leader.ask(msg, e -> future.complete(e), e -> future.completeExceptionally(e));
-			return future;
-		}
 		String sequence = msg.getSequence();
 		//如果该服务已经创建成功直接返回
 		if (createdServices.contains(sequence)) {
 			return "Service Already Exist";
 		}
-		ServiceRef creator = clusterRef.balance(banlance++);
+		ServiceRef creator = null;
+		if (msg.isLocation()) {
+			creator = RPCSystemUtil.getLocalServiceRef(clusterRef);
+		} else {
+			ServiceRef leader = clusterRef.leader();
+			//如果我不是leader,那么交给leader去管理
+			if (leader != ctx.self()) {
+				CompletableFuture<Object> future = new CompletableFuture<>();
+				leader.ask(msg, e -> future.complete(e), e -> future.completeExceptionally(e));
+				return future;
+			}
+			creator = clusterRef.balance(banlance++);
+		}
 		return docker.inquire(new ServiceCreateParam(creator, ctx, sequence));
 	}
 
