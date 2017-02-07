@@ -1,6 +1,8 @@
 package org.appsugar.cluster.service.util;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +22,7 @@ import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.binding.MethodInvoker;
 import org.appsugar.cluster.service.binding.ProxyServer;
 import org.appsugar.cluster.service.binding.RepeatInvoker;
+import org.appsugar.cluster.service.binding.ServiceInvokeHandler;
 import org.appsugar.cluster.service.binding.ServiceStatusHelper;
 import org.appsugar.cluster.service.domain.FutureMessage;
 import org.appsugar.cluster.service.domain.KeyValue;
@@ -256,5 +259,23 @@ public class RPCSystemUtil {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * 获取服务名称
+	 * 传入对象必须是代理对象,并且handler是ServiceInvokeHandler
+	 * @author NewYoung
+	 * 2017年2月6日下午6:32:32
+	 */
+	public static <T> String getServiceName(T service) {
+		if (!Proxy.isProxyClass(service.getClass())) {
+			return null;
+		}
+		InvocationHandler handler = Proxy.getInvocationHandler(service);
+		if (!(handler instanceof ServiceInvokeHandler)) {
+			return null;
+		}
+
+		return ((ServiceInvokeHandler) handler).getName();
 	}
 }

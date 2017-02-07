@@ -207,11 +207,13 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 
 	@Override
 	public void stop(String name) {
-		ServiceRef r = serviceRefs.remove(name);
-		if (r == null) {
-			return;
-		}
-		system.stop(r);
+		//关闭所有本地名称为name的服务
+		system.serviceOf(name).iterable().forEach(e -> {
+			if (!e.hasLocalScope()) {
+				return;
+			}
+			system.stop(e);
+		});
 	}
 
 	protected void notifyServiceListener(String name, Status s) {
