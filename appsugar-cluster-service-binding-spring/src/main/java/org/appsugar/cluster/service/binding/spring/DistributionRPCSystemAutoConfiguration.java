@@ -78,7 +78,7 @@ public class DistributionRPCSystemAutoConfiguration
 
 	@Override
 	public void onApplicationEvent(ContextRefreshedEvent event) {
-		//make sure init only one time
+		//make sure init only once
 		if (!registerFlag.compareAndSet(false, true)) {
 			return;
 		}
