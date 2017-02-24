@@ -42,6 +42,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
+	private ActorRef mediator;
 	//TODO use Guava BiMap instead of this?
 	private Map<Service, AkkaServiceRef> localServices = new ConcurrentHashMap<>();
 	private Map<AkkaServiceRef, Service> refMapService = new ConcurrentHashMap<>();
@@ -59,6 +60,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	 */
 	public AkkaServiceClusterSystem(String name, Config config) {
 		system = ActorSystem.create(name, config);
+		mediator = DistributedPubSub.get(system).mediator();
 		actorShareSystem = ActorShareSystem.getSystem(system, (a, s) -> {
 			if (ClusterStatus.UP == s) {
 				a.stream().forEach(ref -> {
@@ -102,7 +104,6 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 		}
 		AkkaServiceRef akkaServiceRef = (AkkaServiceRef) ref;
 		ActorRef actorRef = akkaServiceRef.destination();
-		ActorRef mediator = DistributedPubSub.get(system).mediator();
 		//关注
 		mediator.tell(new DistributedPubSubMediator.Subscribe(topic, actorRef), actorRef);
 	}
