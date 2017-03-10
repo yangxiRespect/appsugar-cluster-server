@@ -23,6 +23,7 @@ import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent.MemberRemoved;
 import akka.cluster.ClusterEvent.MemberUp;
+import akka.cluster.ClusterEvent.ReachableMember;
 import akka.cluster.ClusterEvent.UnreachableMember;
 import akka.cluster.Member;
 
@@ -89,7 +90,10 @@ public class ActorShareCollector extends UntypedActor {
 				if (autoDown) {
 					whenMemberDown(member);
 				}
-			} //处理共享actor消息
+			} else if (msg instanceof ReachableMember) {
+				memberListener.handle(((MemberUp) msg).member(), ClusterStatus.UP);
+			}
+			//处理共享actor消息
 			else if (msg instanceof ActorClusterShareMessage) {
 				ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;
 				shareMessage.getShare().setActorRef(getSender());
