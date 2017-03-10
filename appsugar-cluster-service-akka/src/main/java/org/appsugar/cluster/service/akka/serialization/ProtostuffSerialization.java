@@ -160,7 +160,13 @@ public class ProtostuffSerialization extends JSerializer {
 		public Object fromBinary(byte[] data) {
 			ProtostuffObjectWrapper wrapper = schema.newMessage();
 			ProtostuffIOUtil.mergeFrom(data, wrapper, schema);
-			return wrapper.getObject();
+			try {
+				return wrapper.getObject();
+			} catch (Exception ex) {
+				logger.error("deserializable message error ", ex);
+				return null;
+			}
+
 		}
 
 	}
@@ -185,7 +191,12 @@ public class ProtostuffSerialization extends JSerializer {
 		public Object fromBinary(byte[] data) {
 			ProtostuffObjectWrapper wrapper = schema.newMessage();
 			GraphIOUtil.mergeFrom(data, wrapper, schema);
-			return wrapper.getObject();
+			try {
+				return wrapper.getObject();
+			} catch (Exception ex) {
+				logger.error("deserializable message error ", ex);
+				return null;
+			}
 		}
 
 	}

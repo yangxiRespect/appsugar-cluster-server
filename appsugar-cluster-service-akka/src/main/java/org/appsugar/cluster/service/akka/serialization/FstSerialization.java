@@ -1,6 +1,8 @@
 package org.appsugar.cluster.service.akka.serialization;
 
 import org.nustaq.serialization.FSTConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.serialization.JSerializer;
 
@@ -10,6 +12,8 @@ import akka.serialization.JSerializer;
  * 2016年5月28日下午7:27:31
  */
 public class FstSerialization extends JSerializer {
+
+	private static final Logger logger = LoggerFactory.getLogger(FstSerialization.class);
 
 	public static final int identifier = 10000;
 
@@ -37,7 +41,12 @@ public class FstSerialization extends JSerializer {
 
 	@Override
 	public Object fromBinaryJava(byte[] data, Class<?> clazz) {
-		return config.asObject(data);
+		try {
+			return config.asObject(data);
+		} catch (Exception ex) {
+			logger.error("deserializable message error ", ex);
+			return null;
+		}
 	}
 
 }
