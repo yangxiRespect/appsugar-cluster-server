@@ -24,6 +24,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /** 
  * 
@@ -36,12 +37,15 @@ public class DistributionRPCSystemAutoConfiguration
 		implements BeanPostProcessor, Ordered, ApplicationListener<ContextRefreshedEvent> {
 	public static final String DISTRIBUTION_RPC_SYSTEM_NAME_KEY = "spring.appsugar.rpc.name";
 	public static final String DISTRIBUTION_RPC_SYSTEM_CONFIG_KEY = "spring.appsugar.rpc.config";
+	public static final String DISTRIBUTION_THREAD_POOL_MAX = "spring.appsugar.thread.pool.max";
 	private static final Logger logger = LoggerFactory.getLogger(DistributionRPCSystemAutoConfiguration.class);
 
 	private List<DynamicServiceFactory> factoryList = new ArrayList<>();
 	private List<Object> serviceList = new ArrayList<>();
 	private AtomicBoolean registerFlag = new AtomicBoolean();
 
+	@Autowired
+	private Environment env;
 	@Autowired
 	private DistributionRPCSystem system;
 
@@ -98,4 +102,28 @@ public class DistributionRPCSystemAutoConfiguration
 		});
 	}
 
+	@Bean
+	public AsyncExecutor asyncExecutor(ThreadPoolTaskExecutor t, TransactionalExecutor te) {
+		AsyncExecutor result = new AsyncExecutor();
+		result.setExecutor(t);
+		result.setTransactionalExecutor(te);
+		return result;
+	}
+
+	@Bean
+	public TransactionalExecutor transactionExecutor() {
+		return new TransactionalExecutor();
+	}
+
+	@Bean
+	public ThreadPoolTaskExecutor executor() {
+		ThreadPoolTaskExecutor result = new ThreadPoolTaskExecutor();
+		String maxPoolSize = env.getProperty(DISTRIBUTION_THREAD_POOL_MAX, "10");
+		int size = Runtime.getRuntime().availableProcessors();
+		int maxSize = Integer.parseInt(maxPoolSize);
+		logger.debug("init thread pool task executor size is {} max size is {}", size, maxSize);
+		result.setCorePoolSize(size);
+		result.setMaxPoolSize(maxSize);
+		return result;
+	}
 }
