@@ -47,7 +47,7 @@ public class ActorShareCollector extends UntypedActor {
 	private Map<ActorRef, ActorShare> localShareMapping = new HashMap<>();
 	private Cluster cluster = Cluster.get(getContext().system());
 	private List<Class<?>> clusterSubscribeTypeList = Arrays.asList(MemberUp.class, MemberRemoved.class,
-			UnreachableMember.class);
+			UnreachableMember.class, ReachableMember.class);
 	private boolean autoDown = false;
 
 	public ActorShareCollector(ClusterMemberListener memberListener, ActorShareListener actorShareListener) {
@@ -83,7 +83,6 @@ public class ActorShareCollector extends UntypedActor {
 			} else if (msg instanceof MemberRemoved) {
 				Member member = ((MemberRemoved) msg).member();
 				memberListener.handle(member, ClusterStatus.DOWN);
-
 			} else if (msg instanceof UnreachableMember) {
 				Member member = ((UnreachableMember) msg).member();
 				memberListener.handle(member, ClusterStatus.DOWN);

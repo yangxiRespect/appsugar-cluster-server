@@ -164,7 +164,7 @@ public class ProtostuffSerialization extends JSerializer {
 				return wrapper.getObject();
 			} catch (Exception ex) {
 				logger.error("deserializable message error ", ex);
-				return null;
+				return ex;
 			}
 
 		}
@@ -195,7 +195,7 @@ public class ProtostuffSerialization extends JSerializer {
 				return wrapper.getObject();
 			} catch (Exception ex) {
 				logger.error("deserializable message error ", ex);
-				return null;
+				return ex;
 			}
 		}
 

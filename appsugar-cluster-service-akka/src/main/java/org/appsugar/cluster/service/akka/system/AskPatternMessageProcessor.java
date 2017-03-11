@@ -55,6 +55,8 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 			processResponse((AskPatternResponse) msg, ctx);
 		} else if (msg instanceof RepeatEvent) {
 			processRepeatEvent((RepeatEvent) msg, ctx);
+		} else if (msg instanceof AskPatternException) {
+			logger.error("remote service cause internal exception  {}", ((AskPatternException) msg).getMsg());
 		} else {
 			return processOtherMessage(msg, ctx);
 		}
@@ -167,6 +169,12 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	 * 处理其他消息
 	 */
 	protected Object processOtherMessage(Object msg, ProcessorContext ctx) throws Throwable {
+		if (msg instanceof Exception) {
+			AskPatternException exception = new AskPatternException(getExceptionMessage((Exception) msg));
+			//异常信息直接发送回原来地方
+			ctx.getSender().tell(exception, ctx.getSelf());
+			return null;
+		}
 		//直接交给下一个处理器处理
 		return ctx.processNext(msg);
 	}
@@ -188,9 +196,11 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	 */
 	private String getExceptionMessage(Throwable e) {
 		StringBuilder sb = new StringBuilder();
+		sb.append(e.getClass().getName());
 		sb.append(e.getMessage());
 		Throwable cause = e.getCause();
 		while (cause != null) {
+			sb.append(cause.getClass().getName());
 			sb.append(" : ");
 			sb.append(cause.getMessage());
 			cause = cause.getCause();

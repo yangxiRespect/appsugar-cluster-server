@@ -30,7 +30,6 @@ public class FstSerialization extends JSerializer {
 
 	@Override
 	public boolean includeManifest() {
-		//fst serialization 有自描述类型. 无需includeManifest
 		return false;
 	}
 
@@ -45,7 +44,7 @@ public class FstSerialization extends JSerializer {
 			return config.asObject(data);
 		} catch (Exception ex) {
 			logger.error("deserializable message error ", ex);
-			return null;
+			return ex;
 		}
 	}
 
