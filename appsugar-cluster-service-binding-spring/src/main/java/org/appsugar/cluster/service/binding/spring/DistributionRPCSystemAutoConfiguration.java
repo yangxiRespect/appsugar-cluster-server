@@ -35,6 +35,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configurable
 public class DistributionRPCSystemAutoConfiguration
 		implements BeanPostProcessor, Ordered, ApplicationListener<ContextRefreshedEvent> {
+	public static final String DEFAULT_DISTRIBUTION_THREAD_POOL_SIZE = "50";
 	public static final String DISTRIBUTION_RPC_SYSTEM_NAME_KEY = "spring.appsugar.rpc.name";
 	public static final String DISTRIBUTION_RPC_SYSTEM_CONFIG_KEY = "spring.appsugar.rpc.config";
 	public static final String DISTRIBUTION_THREAD_POOL_MAX = "spring.appsugar.thread.pool.max";
@@ -118,7 +119,7 @@ public class DistributionRPCSystemAutoConfiguration
 	@Bean
 	public ThreadPoolTaskExecutor executor() {
 		ThreadPoolTaskExecutor result = new ThreadPoolTaskExecutor();
-		String maxPoolSize = env.getProperty(DISTRIBUTION_THREAD_POOL_MAX, "10");
+		String maxPoolSize = env.getProperty(DISTRIBUTION_THREAD_POOL_MAX, DEFAULT_DISTRIBUTION_THREAD_POOL_SIZE);
 		int size = Runtime.getRuntime().availableProcessors();
 		int maxSize = Integer.parseInt(maxPoolSize);
 		logger.debug("init thread pool task executor size is {} max size is {}", size, maxSize);
