@@ -90,7 +90,7 @@ public class ActorShareCollector extends UntypedActor {
 					whenMemberDown(member);
 				}
 			} else if (msg instanceof ReachableMember) {
-				memberListener.handle(((MemberUp) msg).member(), ClusterStatus.UP);
+				memberListener.handle(((ReachableMember) msg).member(), ClusterStatus.UP);
 			}
 			//处理共享actor消息
 			else if (msg instanceof ActorClusterShareMessage) {
