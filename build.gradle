@@ -11,7 +11,7 @@ buildscript {
 }
 plugins {
 	//gradle release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=1.0.0-release -Prelease.newVersion=1.0.1-SNAPSHOT
-    id 'net.researchgate.release' version '2.4.0'
+    id 'net.researchgate.release' version '2.5.0'
 }
 apply plugin: 'java'
 //load properties from config file
@@ -55,7 +55,7 @@ configure(subprojects) { project ->
 		logbackVersion = "1.1.8"
 		akkaVersion = "2.4.17"
 		fstVersion = "2.48"
-		protostuffVersion = "1.5.2"
+		protostuffVersion = "1.5.3"
 		springVersion = "4.3.5.RELEASE"
 	}
 	compileJava.options.encoding = ext["encoding"];

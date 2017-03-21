@@ -39,6 +39,7 @@ public class DistributionRPCSystemAutoConfiguration
 	public static final String DISTRIBUTION_RPC_SYSTEM_NAME_KEY = "spring.appsugar.rpc.name";
 	public static final String DISTRIBUTION_RPC_SYSTEM_CONFIG_KEY = "spring.appsugar.rpc.config";
 	public static final String DISTRIBUTION_THREAD_POOL_MAX = "spring.appsugar.thread.pool.max";
+	public static final String DISTRIBUTION_THREAD_POOL_DEFAULT = "spring.appsugar.thread.pool.default";
 	private static final Logger logger = LoggerFactory.getLogger(DistributionRPCSystemAutoConfiguration.class);
 
 	private List<DynamicServiceFactory> factoryList = new ArrayList<>();
@@ -120,7 +121,8 @@ public class DistributionRPCSystemAutoConfiguration
 	public ThreadPoolTaskExecutor executor() {
 		ThreadPoolTaskExecutor result = new ThreadPoolTaskExecutor();
 		String maxPoolSize = env.getProperty(DISTRIBUTION_THREAD_POOL_MAX, DEFAULT_DISTRIBUTION_THREAD_POOL_SIZE);
-		int size = Runtime.getRuntime().availableProcessors();
+		int size = Integer.parseInt(
+				env.getProperty(DISTRIBUTION_THREAD_POOL_DEFAULT, Runtime.getRuntime().availableProcessors() + ""));
 		int maxSize = Integer.parseInt(maxPoolSize);
 		logger.debug("init thread pool task executor size is {} max size is {}", size, maxSize);
 		result.setCorePoolSize(size);
