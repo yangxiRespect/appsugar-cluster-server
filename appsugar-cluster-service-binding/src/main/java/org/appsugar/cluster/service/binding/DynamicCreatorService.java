@@ -1,8 +1,10 @@
 package org.appsugar.cluster.service.binding;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
@@ -15,6 +17,8 @@ import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.domain.DynamicServiceCreateMessage;
 import org.appsugar.cluster.service.domain.DynamicServiceRequest;
 import org.appsugar.cluster.service.domain.ServiceDescriptor;
+import org.appsugar.cluster.service.domain.ServiceStatusMessage;
+import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
 
@@ -36,6 +40,8 @@ public class DynamicCreatorService implements Service {
 
 	private Map<ServiceRef, Integer> serviceBalance = new HashMap<>(48);
 
+	private Set<String> createdServices = new HashSet<>();
+
 	/**服务名称**/
 	private String name;
 
@@ -54,8 +60,24 @@ public class DynamicCreatorService implements Service {
 			return handleDynamicServiceRequest((DynamicServiceRequest) msg, context);
 		} else if (msg instanceof DynamicServiceCreateMessage) {
 			return handleDynamicServiceCreateMessage((DynamicServiceCreateMessage) msg);
+		} else if (msg instanceof ServiceStatusMessage) {
+			handleServiceStatusMessage((ServiceStatusMessage) msg);
 		}
 		return null;
+	}
+
+	/**
+	 * 处理服务失效 
+	 */
+	protected Object handleServiceStatusMessage(ServiceStatusMessage msg) {
+		if (!Status.INACTIVE.equals(msg.getStatus())) {
+			return false;
+		}
+		String sequence = RPCSystemUtil.getDynamicServiceSequenceByName(name, msg.getName());
+		if (Objects.isNull(sequence)) {
+			return false;
+		}
+		return createdServices.remove(sequence);
 	}
 
 	/**
@@ -80,7 +102,7 @@ public class DynamicCreatorService implements Service {
 						});
 			}
 		});
-		return result;
+		return RPCSystemUtil.wrapContextFuture(result);
 
 	}
 
@@ -91,6 +113,9 @@ public class DynamicCreatorService implements Service {
 		ServiceClusterRef clusterRef = system.serviceOf(name);
 		String sequence = msg.getSequence();
 		//如果该服务已经创建成功直接返回
+		if (createdServices.contains(sequence)) {
+			return "Service already exist";
+		}
 		String expectedServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence);
 		ServiceClusterRef expectedServiceClusterRef = system.serviceOf(expectedServiceName);
 		if (Objects.nonNull(expectedServiceClusterRef) && Objects.nonNull(expectedServiceClusterRef.one())) {
@@ -127,11 +152,15 @@ public class DynamicCreatorService implements Service {
 			CompletableFuture<Object> f = (CompletableFuture<Object>) handle(createMsg, context);
 			f.whenComplete((r, e) -> {
 				if (e == null) {
+					createdServices.add(sequence);
 				}
 				CompletableFutureUtil.completeNormalOrThrowable(future, r, e);
 			});
 		} else {
 			destination.ask(createMsg, e -> {
+				if (e == null) {
+					createdServices.add(sequence);
+				}
 				future.complete(e);
 			}, e -> {
 				future.completeExceptionally(e);

@@ -225,6 +225,22 @@ public class RPCSystemUtil {
 	}
 
 	/**
+	 * 获取动态服务sequence
+	 * @author NewYoung
+	 * 2017年3月23日下午4:41:31
+	 */
+	public static final String getDynamicServiceSequenceByName(String name, String serviceName) {
+		if (!serviceName.startsWith(name)) {
+			return null;
+		}
+		int theLastSeparateIndex = serviceName.lastIndexOf(name + "/");
+		if (theLastSeparateIndex == -1) {
+			return null;
+		}
+		return serviceName.substring(theLastSeparateIndex + 1);
+	}
+
+	/**
 	 * 确保future通知执行在当前context中
 	 */
 	public static <T> CompletableFuture<T> wrapContextFuture(CompletableFuture<T> future) {
