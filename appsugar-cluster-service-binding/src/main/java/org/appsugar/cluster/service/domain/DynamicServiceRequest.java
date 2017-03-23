@@ -13,6 +13,7 @@ public class DynamicServiceRequest implements Serializable {
 
 	private String sequence;
 
+	/**是否在本地创建**/
 	private boolean location;
 
 	public DynamicServiceRequest(String sequence) {

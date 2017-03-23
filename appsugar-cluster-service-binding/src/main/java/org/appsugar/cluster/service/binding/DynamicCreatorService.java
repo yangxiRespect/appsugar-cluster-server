@@ -1,7 +1,8 @@
 package org.appsugar.cluster.service.binding;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
@@ -14,8 +15,6 @@ import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.domain.DynamicServiceCreateMessage;
 import org.appsugar.cluster.service.domain.DynamicServiceRequest;
 import org.appsugar.cluster.service.domain.ServiceDescriptor;
-import org.appsugar.cluster.service.domain.ServiceStatusMessage;
-import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
 
@@ -32,14 +31,13 @@ public class DynamicCreatorService implements Service {
 
 	private DistributionRPCSystem rpcSystem;
 
-	private Set<String> createdServices = new HashSet<>();
-
 	private ServiceDocker<Object, ServiceCreateParam> docker = new ServiceDocker<>(this::createService,
 			p -> p.sequence);
 
-	private String name;
+	private Map<ServiceRef, Integer> serviceBalance = new HashMap<>(48);
 
-	private int banlance;
+	/**服务名称**/
+	private String name;
 
 	public DynamicCreatorService(DynamicServiceFactory factory, ServiceClusterSystem system,
 			DistributionRPCSystem rpcSystem, String name) {
@@ -56,21 +54,8 @@ public class DynamicCreatorService implements Service {
 			return handleDynamicServiceRequest((DynamicServiceRequest) msg, context);
 		} else if (msg instanceof DynamicServiceCreateMessage) {
 			return handleDynamicServiceCreateMessage((DynamicServiceCreateMessage) msg);
-		} else if (msg instanceof ServiceStatusMessage) {
-			handleServiceStatusMessage((ServiceStatusMessage) msg);
 		}
 		return null;
-	}
-
-	/**
-	 * 处理服务失效 
-	 */
-	protected Object handleServiceStatusMessage(ServiceStatusMessage msg) {
-		if (Status.INACTIVE.equals(msg.getStatus())) {
-			createdServices.remove(msg.getName());
-			return true;
-		}
-		return false;
 	}
 
 	/**
@@ -106,8 +91,10 @@ public class DynamicCreatorService implements Service {
 		ServiceClusterRef clusterRef = system.serviceOf(name);
 		String sequence = msg.getSequence();
 		//如果该服务已经创建成功直接返回
-		if (createdServices.contains(sequence)) {
-			return "Service Already Exist";
+		String expectedServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence);
+		ServiceClusterRef expectedServiceClusterRef = system.serviceOf(expectedServiceName);
+		if (Objects.nonNull(expectedServiceClusterRef) && Objects.nonNull(expectedServiceClusterRef.one())) {
+			return "Service already exist";
 		}
 		ServiceRef creator = null;
 		if (msg.isLocation()) {
@@ -120,7 +107,7 @@ public class DynamicCreatorService implements Service {
 				leader.ask(msg, e -> future.complete(e), e -> future.completeExceptionally(e));
 				return future;
 			}
-			creator = clusterRef.balance(banlance++);
+			creator = pickupServiceRef(clusterRef);
 		}
 		return docker.inquire(new ServiceCreateParam(creator, ctx, sequence));
 	}
@@ -140,19 +127,36 @@ public class DynamicCreatorService implements Service {
 			CompletableFuture<Object> f = (CompletableFuture<Object>) handle(createMsg, context);
 			f.whenComplete((r, e) -> {
 				if (e == null) {
-					createdServices.add(sequence);
 				}
 				CompletableFutureUtil.completeNormalOrThrowable(future, r, e);
 			});
 		} else {
 			destination.ask(createMsg, e -> {
-				createdServices.add(sequence);
 				future.complete(e);
 			}, e -> {
 				future.completeExceptionally(e);
 			});
 		}
 		return future;
+	}
+
+	/**
+	 * 筛选出服务数最小的服务
+	 * @author NewYoung
+	 * 2017年3月23日下午4:07:38
+	 */
+	private ServiceRef pickupServiceRef(ServiceClusterRef cluster) {
+		ServiceRef min = cluster.one();
+		int minValue = serviceBalance.getOrDefault(min, 0);
+		for (ServiceRef ref : cluster.iterable()) {
+			Integer value = serviceBalance.getOrDefault(ref, 0);
+			if (value < minValue) {
+				min = ref;
+				minValue = value;
+			}
+		}
+		serviceBalance.put(min, minValue + 1);
+		return min;
 	}
 
 	private static class ServiceCreateParam {
