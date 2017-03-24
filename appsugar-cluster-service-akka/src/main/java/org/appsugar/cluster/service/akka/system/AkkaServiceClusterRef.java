@@ -13,6 +13,7 @@ import org.appsugar.cluster.service.api.ServiceRef;
  * @author NewYoung
  * 2016年5月30日下午2:25:33
  */
+@SuppressWarnings("unused")
 public class AkkaServiceClusterRef implements ServiceClusterRef {
 
 	private List<AkkaServiceRef> serviceRefList = new CopyOnWriteArrayList<>();

@@ -268,4 +268,16 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		return Collections.unmodifiableCollection(serviceRefs.values());
 	}
 
+	@Override
+	public <T> void stop(T service) {
+		ServiceInvokeHandler handler = (ServiceInvokeHandler) Proxy.getInvocationHandler(service);
+		ServiceClusterSystem desSystem = handler.getSystem();
+		String name = handler.getName();
+		desSystem.serviceOf(name).iterable().forEach(e -> {
+			if (e.hasLocalScope()) {
+				system.stop(e);
+			}
+		});
+	}
+
 }

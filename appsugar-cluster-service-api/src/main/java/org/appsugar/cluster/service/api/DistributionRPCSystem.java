@@ -84,8 +84,19 @@ public interface DistributionRPCSystem {
 
 	/**
 	 *停用一个服务
+	 *只能关闭本地服务
+	 *{@link this#stop(Object)}
 	 */
+	@Deprecated
 	void stop(String name);
+
+	/**
+	 * 停止一个服务
+	 * 只能关闭本地服务,必须传入一个服务对象
+	 * @author NewYoung
+	 * 2017年3月24日下午2:00:06
+	 */
+	<T> void stop(T service);
 
 	/**
 	 * 关闭服务

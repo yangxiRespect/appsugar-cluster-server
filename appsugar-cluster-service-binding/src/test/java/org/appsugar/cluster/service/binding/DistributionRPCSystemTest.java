@@ -16,6 +16,7 @@ import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
 import org.appsugar.cluster.service.domain.ServiceDescriptor;
 import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.util.RPCSystemUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,6 +53,11 @@ public class DistributionRPCSystemTest extends TestCase {
 		ProductOperationService p = system.serviceOfDynamic(ProductOperationService.class, sequence);
 		System.out.println(" id is " + p.id());
 		Assert.assertEquals(p, system.serviceOfDynamic(ProductOperationService.class, sequence));
+		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence("productCreate", sequence);
+		Assert.assertNotNull(system.serviceOfDynamicIfPresent(ProductOperationService.class, sequence));
+		system.stop(dynamicServiceName);
+		Thread.sleep(2000);
+		Assert.assertNull(system.serviceOfDynamicIfPresent(ProductOperationService.class, sequence));
 		system.terminate();
 	}
 
