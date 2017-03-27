@@ -2,6 +2,7 @@ package org.appsugar.cluster.service.akka.system;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -106,8 +107,10 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 		} else {
 			serviceRefList.add(ref);
 		}
-		if (ref.compareTo(min) == 1) {
+		if (Objects.isNull(min)) {
 			min = ref;
+		} else {
+			min = ref.compareTo(min) < 0 ? ref : min;
 		}
 	}
 
