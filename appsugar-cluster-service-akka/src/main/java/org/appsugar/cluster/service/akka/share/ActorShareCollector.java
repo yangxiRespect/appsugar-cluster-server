@@ -17,9 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Terminated;
-import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent.MemberRemoved;
 import akka.cluster.ClusterEvent.MemberUp;
@@ -35,7 +35,7 @@ import akka.cluster.Member;
  * @author NewYoung
  * 2016年5月27日下午4:30:53
  */
-public class ActorShareCollector extends UntypedActor {
+public class ActorShareCollector extends AbstractActor {
 
 	public static final Logger logger = LoggerFactory.getLogger(ActorShareCollector.class);
 
@@ -64,52 +64,54 @@ public class ActorShareCollector extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		super.preStart();
-		clusterSubscribeTypeList.stream().forEach(c -> cluster.subscribe(getSelf(), c));
+		clusterSubscribeTypeList.stream().forEach(c -> cluster.subscribe(self(), c));
 	}
 
 	@Override
 	public void postStop() throws Exception {
 		super.postStop();
-		clusterSubscribeTypeList.stream().forEach(c -> cluster.unsubscribe(getSelf(), c));
+		clusterSubscribeTypeList.stream().forEach(c -> cluster.unsubscribe(self(), c));
 		watchList.stream().forEach(w -> getContext().unwatch(w));
 	}
 
 	@Override
-	public void onReceive(Object msg) throws Exception {
-		try {
-			//处理集群节点事件
-			if (msg instanceof MemberUp) {
-				memberListener.handle(((MemberUp) msg).member(), ClusterStatus.UP);
-			} else if (msg instanceof MemberRemoved) {
-				Member member = ((MemberRemoved) msg).member();
-				memberListener.handle(member, ClusterStatus.DOWN);
-			} else if (msg instanceof UnreachableMember) {
-				Member member = ((UnreachableMember) msg).member();
-				memberListener.handle(member, ClusterStatus.DOWN);
-				if (autoDown) {
-					whenMemberDown(member);
+	public Receive createReceive() {
+		return receiveBuilder().matchAny(msg -> {
+			try {
+				//处理集群节点事件
+				if (msg instanceof MemberUp) {
+					memberListener.handle(((MemberUp) msg).member(), ClusterStatus.UP);
+				} else if (msg instanceof MemberRemoved) {
+					Member member = ((MemberRemoved) msg).member();
+					memberListener.handle(member, ClusterStatus.DOWN);
+				} else if (msg instanceof UnreachableMember) {
+					Member member = ((UnreachableMember) msg).member();
+					memberListener.handle(member, ClusterStatus.DOWN);
+					if (autoDown) {
+						whenMemberDown(member);
+					}
+				} else if (msg instanceof ReachableMember) {
+					memberListener.handle(((ReachableMember) msg).member(), ClusterStatus.UP);
 				}
-			} else if (msg instanceof ReachableMember) {
-				memberListener.handle(((ReachableMember) msg).member(), ClusterStatus.UP);
+				//处理共享actor消息
+				else if (msg instanceof ActorClusterShareMessage) {
+					ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;
+					shareMessage.getShare().setActorRef(sender());
+					actorShareListener.handle(Arrays.asList(shareMessage.getShare()), shareMessage.getStatus());
+				} //处理本地共享消息
+				else if (msg instanceof LocalShareMessage) {
+					processLocalShareMessage((LocalShareMessage) msg);
+				} //处理本地共享actor关闭事件
+				else if (msg instanceof Terminated) {
+					ActorRef ref = sender();
+					getContext().unwatch(ref);
+					ActorShare actorShare = localShareMapping.remove(ref);
+					actorShareListener.handle(Arrays.asList(actorShare), ClusterStatus.DOWN);
+				}
+			} catch (Throwable ex) {
+				logger.error("process akka cluster member event error {}", ex);
 			}
-			//处理共享actor消息
-			else if (msg instanceof ActorClusterShareMessage) {
-				ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;
-				shareMessage.getShare().setActorRef(getSender());
-				actorShareListener.handle(Arrays.asList(shareMessage.getShare()), shareMessage.getStatus());
-			} //处理本地共享消息
-			else if (msg instanceof LocalShareMessage) {
-				processLocalShareMessage((LocalShareMessage) msg);
-			} //处理本地共享actor关闭事件
-			else if (msg instanceof Terminated) {
-				ActorRef ref = getSender();
-				getContext().unwatch(ref);
-				ActorShare actorShare = localShareMapping.remove(ref);
-				actorShareListener.handle(Arrays.asList(actorShare), ClusterStatus.DOWN);
-			}
-		} catch (Throwable ex) {
-			logger.error("process akka cluster member event error {}", ex);
-		}
+		}).build();
 	}
 
 	protected void whenMemberDown(Member member) {
