@@ -8,7 +8,7 @@ import java.util.List;
  * 2016年12月8日下午2:55:12
  */
 public class ServiceDescriptor {
-	/**是否为本地服务**/
+	/**是否为本地服务(本地服务只能在同一jvm中调用)**/
 	private boolean local;
 	/**服务者**/
 	private List<Object> serves;

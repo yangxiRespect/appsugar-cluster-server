@@ -1,9 +1,8 @@
 package org.appsugar.cluster.service.binding;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
@@ -31,9 +30,7 @@ public class DistributionRPCSystemTest extends TestCase {
 	public void testInvoke() throws Exception {
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("a", ConfigFactory.load()));
-		Map<Class<?>, Object> serves = new HashMap<>();
-		serves.put(Hello.class, new HelloImpl());
-		system.serviceFor(serves, "test");
+		system.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), "test");
 		Hello h = system.serviceOf(Hello.class);
 		System.out.println(" 调用第一次结果" + h.sayHello());
 		System.out.println(" 调用第二次结果" + h.sayHello());
@@ -66,9 +63,7 @@ public class DistributionRPCSystemTest extends TestCase {
 				.withFallback(ConfigFactory.load());
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("ClusterSystem", config));
-		Map<Class<?>, Object> serves = new HashMap<>();
-		serves.put(Hello.class, new HelloImpl());
-		system.serviceFor(serves, Hello.serviceName);
+		system.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), Hello.serviceName);
 		Thread.sleep(8000);
 	}
 

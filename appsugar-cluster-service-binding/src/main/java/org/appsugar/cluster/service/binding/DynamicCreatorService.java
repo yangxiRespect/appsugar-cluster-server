@@ -151,14 +151,14 @@ public class DynamicCreatorService implements Service {
 			@SuppressWarnings("unchecked")
 			CompletableFuture<Object> f = (CompletableFuture<Object>) handle(createMsg, context);
 			f.whenComplete((r, e) -> {
-				if (e == null) {
+				if (Objects.isNull(e)) {
 					createdServices.add(sequence);
 				}
 				CompletableFutureUtil.completeNormalOrThrowable(future, r, e);
 			});
 		} else {
 			destination.ask(createMsg, e -> {
-				if (e == null) {
+				if (Objects.isNull(e)) {
 					createdServices.add(sequence);
 				}
 				future.complete(e);

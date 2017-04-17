@@ -1,11 +1,14 @@
 package org.appsugar.cluster.service.akka.share;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.cluster.Member;
 
 /**
  * actor共享系统
@@ -58,4 +61,12 @@ public class ActorShareSystem {
 		return shareCenter.share(ref, name, local);
 	}
 
+	/**
+	 * 获取所有节点
+	 * @author NewYoung
+	 * 2017年4月17日上午11:07:17
+	 */
+	public Set<Member> members() {
+		return Collections.unmodifiableSet(shareCenter.members());
+	}
 }

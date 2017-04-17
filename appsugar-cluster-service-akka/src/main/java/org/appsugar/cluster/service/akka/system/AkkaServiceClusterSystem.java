@@ -115,7 +115,6 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 		if (akkaServiceRef != null) {
 			actorRef = akkaServiceRef.destination();
 		}
-		ActorRef mediator = DistributedPubSub.get(system).mediator();
 		mediator.tell(new DistributedPubSubMediator.Publish(topic, new SubscribeMessage(topic, msg)), actorRef);
 	}
 

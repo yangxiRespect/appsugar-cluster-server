@@ -1,7 +1,6 @@
 package org.appsugar.cluster.service.api;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.domain.ServiceDescriptor;
@@ -31,27 +30,15 @@ public interface DistributionRPCSystem {
 
 	/**
 	 * 获取动态服务操作对象
-	 * 如果服务不存在,会请求对应动态服务创建工厂创建对应服务
+	 * 如果服务不存在,会请求对应动态服务创建工厂创建对应服务(服务可能创建在任意节点中)
 	 */
 	<T> T serviceOfDynamic(Class<T> ic, String sequence);
 
 	/**
 	 * 获取动态服务操作对象
-	 * 如果服务不存在,会请求本地服务创建对应动态服务
+	 * 如果服务不存在,会请求本地创建对应动态服务(服务只在当前jvm中创建)
 	 */
 	<T> T serviceOfDynamicLocally(Class<T> ic, String sequence);
-
-	/**
-	 * 根据接口类与对应实现类和服务名称,创建对应服务
-	 */
-	@Deprecated
-	void serviceFor(Map<Class<?>, ?> serves, String name);
-
-	/**
-	 * 根据接口类与对应实现类和服务名称,创建服务
-	 */
-	@Deprecated
-	void serviceFor(Map<Class<?>, ?> serves, String name, boolean local);
 
 	/**
 	 * 创建指定服务
@@ -87,7 +74,6 @@ public interface DistributionRPCSystem {
 	 *只能关闭本地服务
 	 *{@link this#stop(Object)}
 	 */
-	@Deprecated
 	void stop(String name);
 
 	/**

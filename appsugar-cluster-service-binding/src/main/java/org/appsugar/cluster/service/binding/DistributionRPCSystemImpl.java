@@ -139,21 +139,6 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	}
 
 	@Override
-	public void serviceFor(Map<Class<?>, ?> serves, String name, boolean local) {
-		Service service = new RPCService(system, this, serves);
-		ServiceRef serviceRef = system.serviceFor(service, name, local);
-		serviceRefs.put(name, serviceRef);
-		//初始化服务
-		serviceRef.tell(RepeatMessage.instance, ServiceRef.NO_SENDER);
-	}
-
-	@Override
-	public void serviceFor(Map<Class<?>, ?> serves, String name) {
-		//只要有一个为远程服务,那么就共享该服务
-		serviceFor(serves, name, false);
-	}
-
-	@Override
 	public void serviceFor(ServiceDescriptor descriptor, String name) {
 		try {
 			serviceForAsync(descriptor, name).get();

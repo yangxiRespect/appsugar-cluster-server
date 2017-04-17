@@ -154,4 +154,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		}
 		return actorShareList;
 	}
+
+	public Set<Member> members() {
+		return members;
+	}
 }
