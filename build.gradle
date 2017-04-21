@@ -1,8 +1,6 @@
 buildscript {	
 	repositories {
-		maven{
-			url "http://maven.aliyun.com/nexus/content/groups/public"
-		}
+		maven{url "http://maven.aliyun.com/nexus/content/groups/public"}
 		mavenCentral()
 		mavenLocal()
 		jcenter()
@@ -11,27 +9,21 @@ buildscript {
 }
 plugins {
 	//gradle release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=1.0.0-release -Prelease.newVersion=1.0.1-SNAPSHOT
-    id 'net.researchgate.release' version '2.5.0'
+    id 'net.researchgate.release' version '2.6.0'
 }
 apply plugin: 'java'
 //load properties from config file
 def loadGroovyConfig(p){
-		if(p == null){
-			return new java.util.HashMap();
-		}
+		if(p == null){return new java.util.HashMap();}
 		def configFile = file("environment.groovy")
 		def profileObject = new ConfigSlurper(p).parse(configFile.toURL()).toProperties()
-		if(profileObject.isEmpty()){
-			throw new InvalidUserDataException("profile not found name is "+p);
-		}
+		if(profileObject.isEmpty()){throw new InvalidUserDataException("profile not found name is "+p);}
 		return profileObject
 		
 }
 def env = loadGroovyConfig("base")
 env.putAll(loadGroovyConfig(System.getProperty("profile")))
 env.putAll(System.properties)
-
-
 
 configure(subprojects) { project ->
 	apply plugin: "java"
@@ -40,9 +32,7 @@ configure(subprojects) { project ->
 	sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 	repositories {
-		maven{
-			url "http://maven.aliyun.com/nexus/content/groups/public"
-		}
+		maven{url "http://maven.aliyun.com/nexus/content/groups/public"}
 		mavenCentral()
 		mavenLocal()
 	}
@@ -62,7 +52,7 @@ configure(subprojects) { project ->
 	compileTestJava.options.encoding = ext["encoding"];
 	
 	task sourcesJar(type: Jar, dependsOn: classes) {
-	    classifier = 'sources'
+	    classifier = "sources"
 	    from sourceSets.main.allSource
 	}
 	
@@ -75,7 +65,7 @@ configure(subprojects) { project ->
 	}
 	processTestResources {
 		from(sourceSets.test.resources.srcDirs) {
-			include '**/*.properties'
+			include "**/*.properties"
 			filter(org.apache.tools.ant.filters.ReplaceTokens,tokens: env)
 		}
 	}
