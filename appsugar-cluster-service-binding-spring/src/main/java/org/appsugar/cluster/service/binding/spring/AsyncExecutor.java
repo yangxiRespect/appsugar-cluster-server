@@ -3,7 +3,6 @@ package org.appsugar.cluster.service.binding.spring;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
-import org.appsugar.cluster.function.Execution;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
@@ -18,9 +17,9 @@ public class AsyncExecutor {
 
 	private TransactionalExecutor transactionalExecutor;
 
-	public CompletableFuture<Void> execute(Execution exec) {
+	public CompletableFuture<Void> execute(Runnable exec) {
 		return execute(() -> {
-			exec.exec();
+			exec.run();
 			return null;
 		});
 	}
@@ -40,9 +39,9 @@ public class AsyncExecutor {
 		return RPCSystemUtil.wrapContextFuture(future);
 	}
 
-	public CompletableFuture<Void> executeInTransaction(Execution exec) {
+	public CompletableFuture<Void> executeInTransaction(Runnable exec) {
 		return executeInTransaction(() -> {
-			exec.exec();
+			exec.run();
 			return null;
 		});
 	}
@@ -56,9 +55,9 @@ public class AsyncExecutor {
 		return executeInTransaction(supplier, true);
 	}
 
-	public CompletableFuture<Void> executeInTransaction(Execution exec, boolean readOnly) {
+	public CompletableFuture<Void> executeInTransaction(Runnable exec, boolean readOnly) {
 		return executeInTransaction(() -> {
-			exec.exec();
+			exec.run();
 			return null;
 		}, readOnly);
 	}
