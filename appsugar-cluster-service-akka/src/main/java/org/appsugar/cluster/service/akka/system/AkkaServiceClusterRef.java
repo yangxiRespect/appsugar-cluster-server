@@ -119,7 +119,9 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 		if (serviceRefList.isEmpty()) {
 			return;
 		}
-		min = Collections.min(serviceRefList);
+		if (ref == min) {
+			min = Collections.min(serviceRefList);
+		}
 	}
 
 	@Override
