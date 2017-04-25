@@ -102,7 +102,7 @@ public class DynamicCreatorService implements Service {
 						});
 			}
 		});
-		return RPCSystemUtil.wrapContextFuture(result);
+		return result;
 
 	}
 
