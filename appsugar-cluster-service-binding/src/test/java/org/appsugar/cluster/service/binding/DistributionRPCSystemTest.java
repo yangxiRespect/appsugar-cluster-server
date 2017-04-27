@@ -117,6 +117,11 @@ class ProductOperationServiceServiceFactory implements DynamicServiceFactory {
 		return "productCreate";
 	}
 
+	@Override
+	public void init(DistributionRPCSystem system) {
+		System.out.println("dynaimc create service  init");
+	}
+
 }
 
 @Service(Hello.serviceName)

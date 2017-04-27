@@ -239,6 +239,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		Service service = new DynamicCreatorService(factory, system, this, name);
 		ServiceRef serviceRef = system.serviceFor(service, name, factory.local());
 		serviceRefs.put(serviceRef.name(), serviceRef);
+		factory.init(this);
 	}
 
 	@SuppressWarnings("unchecked")

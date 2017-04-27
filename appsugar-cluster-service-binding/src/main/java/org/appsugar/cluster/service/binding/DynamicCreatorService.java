@@ -29,6 +29,8 @@ import org.appsugar.cluster.service.util.RPCSystemUtil;
  */
 public class DynamicCreatorService implements Service {
 
+	public static final String SERVICE_ALREADY_EXISTS = "service already exists";
+
 	private DynamicServiceFactory factory;
 
 	private ServiceClusterSystem system;
@@ -114,12 +116,12 @@ public class DynamicCreatorService implements Service {
 		String sequence = msg.getSequence();
 		//如果该服务已经创建成功直接返回
 		if (createdServices.contains(sequence)) {
-			return "Service already exist";
+			return SERVICE_ALREADY_EXISTS;
 		}
 		String expectedServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence);
 		ServiceClusterRef expectedServiceClusterRef = system.serviceOf(expectedServiceName);
-		if (Objects.nonNull(expectedServiceClusterRef) && Objects.nonNull(expectedServiceClusterRef.one())) {
-			return "Service already exist";
+		if (Objects.nonNull(expectedServiceClusterRef) && expectedServiceClusterRef.size() != 0) {
+			return SERVICE_ALREADY_EXISTS;
 		}
 		ServiceRef creator = null;
 		if (msg.isLocation()) {
@@ -141,7 +143,6 @@ public class DynamicCreatorService implements Service {
 	 * 创建服务逻辑
 	 */
 	protected CompletableFuture<Object> createService(ServiceCreateParam param) throws Throwable {
-		CompletableFuture<Object> future = new CompletableFuture<>();
 		ServiceRef destination = param.destination;
 		ServiceContext context = param.context;
 		ServiceRef self = context.self();
@@ -150,23 +151,18 @@ public class DynamicCreatorService implements Service {
 		if (destination == self) {
 			@SuppressWarnings("unchecked")
 			CompletableFuture<Object> f = (CompletableFuture<Object>) handle(createMsg, context);
-			f.whenComplete((r, e) -> {
-				if (Objects.isNull(e)) {
-					createdServices.add(sequence);
-				}
-				CompletableFutureUtil.completeNormalOrThrowable(future, r, e);
-			});
-		} else {
-			destination.ask(createMsg, e -> {
-				if (Objects.isNull(e)) {
-					createdServices.add(sequence);
-				}
-				future.complete(e);
-			}, e -> {
-				future.completeExceptionally(e);
-			});
+			f.thenAccept(e -> createdServices.add(sequence));
+			return f;
 		}
+		CompletableFuture<Object> future = new CompletableFuture<>();
+		destination.ask(createMsg, e -> {
+			createdServices.add(sequence);
+			future.complete(e);
+		}, e -> {
+			future.completeExceptionally(e);
+		});
 		return future;
+
 	}
 
 	/**

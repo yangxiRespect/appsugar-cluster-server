@@ -32,4 +32,10 @@ public interface DynamicServiceFactory {
 		return false;
 	}
 
+	/**
+	 * 动态工厂初始化
+	 * @author NewYoung
+	 * 2017年4月27日下午1:26:02
+	 */
+	public void init(DistributionRPCSystem system);
 }
