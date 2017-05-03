@@ -1,8 +1,9 @@
 package org.appsugar.cluster.service.binding.spring;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
+import org.appsugar.cluster.service.binding.spring.function.ThrowableRunnable;
+import org.appsugar.cluster.service.binding.spring.function.ThrowableSupplier;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
@@ -17,7 +18,7 @@ public class AsyncExecutor {
 
 	private TransactionalExecutor transactionalExecutor;
 
-	public CompletableFuture<Void> execute(Runnable exec) {
+	public CompletableFuture<Void> execute(ThrowableRunnable exec) {
 		return execute(() -> {
 			exec.run();
 			return null;
@@ -27,7 +28,7 @@ public class AsyncExecutor {
 	/**
 	 * 异步执行
 	 */
-	public <T> CompletableFuture<T> execute(Supplier<T> supplier) {
+	public <T> CompletableFuture<T> execute(ThrowableSupplier<T> supplier) {
 		CompletableFuture<T> future = new CompletableFuture<>();
 		executor.execute(() -> {
 			try {
@@ -39,7 +40,7 @@ public class AsyncExecutor {
 		return RPCSystemUtil.wrapContextFuture(future);
 	}
 
-	public CompletableFuture<Void> executeInTransaction(Runnable exec) {
+	public CompletableFuture<Void> executeInTransaction(ThrowableRunnable exec) {
 		return executeInTransaction(() -> {
 			exec.run();
 			return null;
@@ -51,7 +52,7 @@ public class AsyncExecutor {
 	 * @author NewYoung
 	 * 2017年3月10日下午1:32:25
 	 */
-	public <T> CompletableFuture<T> executeInTransaction(Supplier<T> supplier) {
+	public <T> CompletableFuture<T> executeInTransaction(ThrowableSupplier<T> supplier) {
 		return executeInTransaction(supplier, true);
 	}
 
@@ -67,7 +68,7 @@ public class AsyncExecutor {
 	 * @param supplier
 	 * @return
 	 */
-	public <T> CompletableFuture<T> executeInTransaction(Supplier<T> supplier, boolean readOnly) {
+	public <T> CompletableFuture<T> executeInTransaction(ThrowableSupplier<T> supplier, boolean readOnly) {
 		CompletableFuture<T> future = new CompletableFuture<>();
 		executor.execute(() -> {
 			try {

@@ -1,7 +1,6 @@
 package org.appsugar.cluster.service.binding.spring;
 
-import java.util.function.Supplier;
-
+import org.appsugar.cluster.service.binding.spring.function.ThrowableSupplier;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -12,12 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransactionalExecutor {
 
 	@Transactional(readOnly = true)
-	public <T> T readOnly(Supplier<T> supplier) {
+	public <T> T readOnly(ThrowableSupplier<T> supplier) throws Throwable {
 		return supplier.get();
 	}
 
 	@Transactional
-	public <T> T required(Supplier<T> supplier) {
+	public <T> T required(ThrowableSupplier<T> supplier) throws Throwable {
 		return supplier.get();
 	}
 }
