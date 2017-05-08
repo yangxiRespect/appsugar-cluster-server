@@ -266,4 +266,16 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		});
 	}
 
+	@Override
+	public boolean exist(String name) {
+		ServiceClusterRef clusterRef = system.serviceOf(name);
+		return Objects.nonNull(clusterRef) && clusterRef.size() != 0;
+	}
+
+	@Override
+	public boolean existLocally(String name) {
+		ServiceClusterRef clusterRef = system.serviceOf(name);
+		return Objects.nonNull(clusterRef) && Objects.nonNull(RPCSystemUtil.getLocalServiceRef(clusterRef));
+	}
+
 }

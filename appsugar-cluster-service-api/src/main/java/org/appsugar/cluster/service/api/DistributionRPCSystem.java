@@ -13,6 +13,20 @@ import org.appsugar.cluster.service.domain.ServiceDescriptor;
 public interface DistributionRPCSystem {
 
 	/**
+	 * 判断该服务是否存在于集群中
+	 * @author NewYoung
+	 * 2017年5月5日下午4:03:29
+	 */
+	boolean exist(String name);
+
+	/**
+	 * 判断该服务是否存在于当前节点中
+	 * @author NewYoung
+	 * 2017年5月5日下午4:03:45
+	 */
+	boolean existLocally(String name);
+
+	/**
 	 *根据接口类获取对应操作对象 
 	 */
 	<T> T serviceOf(Class<T> ic);
