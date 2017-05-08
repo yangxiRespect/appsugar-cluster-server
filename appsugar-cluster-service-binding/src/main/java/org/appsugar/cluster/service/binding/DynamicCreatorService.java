@@ -72,11 +72,12 @@ public class DynamicCreatorService implements Service {
 	 * 处理服务失效 
 	 */
 	protected Object handleServiceStatusMessage(ServiceStatusMessage msg) {
-		if (!Status.INACTIVE.equals(msg.getStatus())) {
-			return false;
-		}
 		String sequence = RPCSystemUtil.getDynamicServiceSequenceByName(name, msg.getName());
 		if (Objects.isNull(sequence)) {
+			return false;
+		}
+		if (!Status.INACTIVE.equals(msg.getStatus())) {
+			createdServices.add(sequence);
 			return false;
 		}
 		return createdServices.remove(sequence);
