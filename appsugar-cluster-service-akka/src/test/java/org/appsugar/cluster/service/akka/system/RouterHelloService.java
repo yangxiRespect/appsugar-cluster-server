@@ -16,11 +16,8 @@ public class RouterHelloService implements Service {
 
 	@Override
 	public Object handle(Object msg, ServiceContext context) throws Exception {
-		if (ref != null) {
-			//请求服务后,执行context应该相同
-			ref.ask(msg, e -> System.out.println(context == ServiceContextUtil.context()),
-					e -> System.out.println(context == ServiceContextUtil.context()));
-		}
+		//请求服务后,执行context应该相同
+		ref.ask(msg).thenAccept(ctx -> System.out.println(context == ServiceContextUtil.context()));
 		return 1;
 	}
 

@@ -74,7 +74,7 @@ public class RPCService implements Service {
 	 * 处理服务变更消息
 	 */
 	protected void processServiceStatusMessage(ServiceStatusMessage msg) throws Throwable {
-		String name = msg.getName();
+		String name = msg.getServiceRef().name();
 		List<ServiceStatusHelper> helperList = serviceReadyInvokerMap.get(name);
 		if (helperList == null) {
 			return;
@@ -201,11 +201,10 @@ public class RPCService implements Service {
 			}
 		});
 		//处理已准备服务
-		rpcSystem.serviceStatus.entrySet().stream().filter(e -> e.getValue() > 0).forEach(e -> {
+		rpcSystem.serviceRefs.entrySet().stream().forEach(e -> {
 			try {
-				handle(new ServiceStatusMessage(e.getKey(), Status.ACTIVE), context);
+				handle(new ServiceStatusMessage(e.getValue(), Status.ACTIVE), context);
 			} catch (Throwable ex) {
-				//do nothing
 			}
 		});
 	}

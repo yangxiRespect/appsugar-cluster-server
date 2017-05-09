@@ -17,14 +17,12 @@ import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.annotation.ExecuteRepeat;
 import org.appsugar.cluster.service.annotation.Service;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
-import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.binding.MethodInvoker;
 import org.appsugar.cluster.service.binding.ProxyServer;
 import org.appsugar.cluster.service.binding.RepeatInvoker;
 import org.appsugar.cluster.service.binding.ServiceInvokeHandler;
 import org.appsugar.cluster.service.binding.ServiceStatusHelper;
-import org.appsugar.cluster.service.domain.FutureMessage;
 import org.appsugar.cluster.service.domain.KeyValue;
 import org.appsugar.cluster.service.domain.ServiceException;
 import org.appsugar.cluster.service.domain.Status;
@@ -35,6 +33,15 @@ import org.appsugar.cluster.service.domain.Status;
  * 2016年6月3日上午7:15:11
  */
 public class RPCSystemUtil {
+
+	/**
+	 * 获取future中的值
+	 * @author NewYoung
+	 * 2017年5月9日下午3:14:43
+	 */
+	public static final <T> T getSilently(CompletableFuture<T> future) {
+		return CompletableFutureUtil.getSilently(future);
+	}
 
 	/**
 	 * 获取对象服务接口类对象
@@ -125,11 +132,9 @@ public class RPCSystemUtil {
 	 */
 	public static final Map<String, List<MethodInvoker>> getEventMethodInvoke(Map<Class<?>, ?> serves) {
 		return serves.entrySet().stream()
-				.flatMap(
-						e -> RPCSystemUtil.getEventMethods(e.getValue()).entrySet().stream()
-								.map(k -> new KeyValue<>(k.getKey(),
-										k.getValue().stream()
-												.map(m -> new MethodInvoker(m, serves.get(e.getKey()), true)))))
+				.flatMap(e -> RPCSystemUtil.getEventMethods(e.getValue()).entrySet().stream()
+						.map(k -> new KeyValue<>(k.getKey(),
+								k.getValue().stream().map(m -> new MethodInvoker(m, serves.get(e.getKey()), true)))))
 				.flatMap(e -> e.getValue().map(s -> new KeyValue<>(e.getKey(), s))).collect(Collectors
 						.groupingBy(e -> e.getKey(), Collectors.mapping(e -> e.getValue(), Collectors.toList())));
 
@@ -183,10 +188,8 @@ public class RPCSystemUtil {
 	 */
 	public static final Map<List<String>, MethodInvoker> getClassMethodInvoker(Map<Class<?>, ?> classMap) {
 		return classMap.entrySet().stream()
-				.flatMap(
-						e -> Arrays.asList(e.getKey().getMethods()).stream()
-								.map(m -> new KeyValue<>(getNameList(e.getKey(), m),
-										new MethodInvoker(m, e.getValue()))))
+				.flatMap(e -> Arrays.asList(e.getKey().getMethods()).stream()
+						.map(m -> new KeyValue<>(getNameList(e.getKey(), m), new MethodInvoker(m, e.getValue()))))
 				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 	}
 
@@ -244,23 +247,7 @@ public class RPCSystemUtil {
 	 * 确保future通知执行在当前context中
 	 */
 	public static <T> CompletableFuture<T> wrapContextFuture(CompletableFuture<T> future) {
-		ServiceContext context = ServiceContextUtil.context();
-		if (context == null || future.isDone() || future.isCancelled()) {
-			return future;
-		}
-		CompletableFuture<T> notifyFuture = new CompletableFuture<>();
-		future.whenComplete((r, e) -> {
-			ServiceContext ctx = ServiceContextUtil.context();
-			if (ctx == context) {
-				CompletableFutureUtil.completeNormalOrThrowable(notifyFuture, r, e);
-			} else {
-				context.self()
-						.tell(new FutureMessage<T>(r, e,
-								(r1, e1) -> CompletableFutureUtil.completeNormalOrThrowable(notifyFuture, r1, e1)),
-								ctx == null ? ServiceRef.NO_SENDER : ctx.sender());
-			}
-		});
-		return notifyFuture;
+		return CompletableFutureUtil.wrapContextFuture(future);
 	}
 
 	/**

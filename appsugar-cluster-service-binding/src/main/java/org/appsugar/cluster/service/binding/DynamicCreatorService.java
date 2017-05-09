@@ -1,8 +1,6 @@
 package org.appsugar.cluster.service.binding;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -16,11 +14,12 @@ import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.domain.DynamicServiceCreateMessage;
 import org.appsugar.cluster.service.domain.DynamicServiceRequest;
-import org.appsugar.cluster.service.domain.ServiceDescriptor;
 import org.appsugar.cluster.service.domain.ServiceStatusMessage;
 import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 动态创建服务
@@ -28,7 +27,8 @@ import org.appsugar.cluster.service.util.RPCSystemUtil;
  * 2016年6月14日下午2:45:45
  */
 public class DynamicCreatorService implements Service {
-
+	private static final Logger logger = LoggerFactory.getLogger(DynamicCreatorService.class);
+	public static final String SERVICE_BALANCE_KEY = "service_balance";
 	public static final String SERVICE_ALREADY_EXISTS = "service already exists";
 
 	private DynamicServiceFactory factory;
@@ -39,8 +39,6 @@ public class DynamicCreatorService implements Service {
 
 	private ServiceDocker<Object, ServiceCreateParam> docker = new ServiceDocker<>(this::createService,
 			p -> p.sequence);
-
-	private Map<ServiceRef, Integer> serviceBalance = new HashMap<>(48);
 
 	private Set<String> createdServices = new HashSet<>();
 
@@ -72,15 +70,22 @@ public class DynamicCreatorService implements Service {
 	 * 处理服务失效 
 	 */
 	protected void handleServiceStatusMessage(ServiceStatusMessage msg) {
-		String sequence = RPCSystemUtil.getDynamicServiceSequenceByName(name, msg.getName());
+		ServiceRef ref = msg.getServiceRef();
+		String sequence = RPCSystemUtil.getDynamicServiceSequenceByName(name, ref.name());
 		if (Objects.isNull(sequence)) {
 			return;
 		}
-		if (!Status.INACTIVE.equals(msg.getStatus())) {
-			createdServices.add(sequence);
-			return;
+		int balanceAdjustment = 1;
+		if (Objects.equals(Status.ACTIVE, msg.getStatus())) {
+			if (!createdServices.add(sequence)) {
+				//服务已存在.不重复添加
+				return;
+			}
+		} else {
+			createdServices.remove(sequence);
+			balanceAdjustment = -1;
 		}
-		createdServices.remove(sequence);
+		adjustDynamicServiceBalance(ref, balanceAdjustment);
 	}
 
 	/**
@@ -89,24 +94,9 @@ public class DynamicCreatorService implements Service {
 	protected CompletableFuture<Void> handleDynamicServiceCreateMessage(DynamicServiceCreateMessage msg)
 			throws Exception {
 		String sequence = msg.getSequence();
-		CompletableFuture<Void> result = new CompletableFuture<>();
 		//异步创建出服务者
-		CompletableFuture<ServiceDescriptor> future = RPCSystemUtil
-				.wrapContextFuture(factory.create(msg.getSequence()));
-		future.whenComplete((r, e) -> {
-			if (e != null) {
-				result.completeExceptionally(e);
-			} else {
-				//根据服务者,异步创建服务
-				r.setLocal(factory.local());
-				rpcSystem.serviceForAsync(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence))
-						.whenComplete((r1, e1) -> {
-							CompletableFutureUtil.completeNormalOrThrowable(result, r1, e1);
-						});
-			}
-		});
-		return result;
-
+		return CompletableFutureUtil.wrapContextFuture(factory.create(msg.getSequence()).thenCompose(
+				r -> rpcSystem.serviceForAsync(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence))));
 	}
 
 	/**
@@ -131,9 +121,7 @@ public class DynamicCreatorService implements Service {
 			ServiceRef leader = clusterRef.leader();
 			//如果我不是leader,那么交给leader去管理
 			if (leader != ctx.self()) {
-				CompletableFuture<Object> future = new CompletableFuture<>();
-				leader.ask(msg, e -> future.complete(e), e -> future.completeExceptionally(e));
-				return future;
+				return leader.ask(msg);
 			}
 			creator = pickupServiceRef(clusterRef);
 		}
@@ -155,15 +143,7 @@ public class DynamicCreatorService implements Service {
 			f.thenAccept(e -> createdServices.add(sequence));
 			return f;
 		}
-		CompletableFuture<Object> future = new CompletableFuture<>();
-		destination.ask(createMsg, e -> {
-			createdServices.add(sequence);
-			future.complete(e);
-		}, e -> {
-			future.completeExceptionally(e);
-		});
-		return future;
-
+		return destination.ask(createMsg).thenApply(e -> createdServices.add(sequence));
 	}
 
 	/**
@@ -173,15 +153,15 @@ public class DynamicCreatorService implements Service {
 	 */
 	private ServiceRef pickupServiceRef(ServiceClusterRef cluster) {
 		ServiceRef min = cluster.one();
-		int minValue = serviceBalance.getOrDefault(min, 0);
+		int minValue = min.getOrDefault(SERVICE_BALANCE_KEY, 0);
 		for (ServiceRef ref : cluster.iterable()) {
-			Integer value = serviceBalance.getOrDefault(ref, 0);
+			Integer value = ref.getOrDefault(SERVICE_BALANCE_KEY, 0);
 			if (value < minValue) {
 				min = ref;
 				minValue = value;
 			}
 		}
-		serviceBalance.put(min, minValue + 1);
+		min.attach(SERVICE_BALANCE_KEY, minValue + 1);
 		return min;
 	}
 
@@ -195,6 +175,26 @@ public class DynamicCreatorService implements Service {
 			this.destination = destination;
 			this.context = context;
 			this.sequence = sequence;
+		}
+	}
+
+	/**
+	 * 负载均衡调整
+	 * @author NewYoung
+	 * 2017年5月9日下午5:10:10
+	 */
+	void adjustDynamicServiceBalance(ServiceRef ref, int adjustment) {
+		ServiceClusterRef cluster = system.serviceOf(name);
+		for (ServiceRef creator : cluster.iterable()) {
+			if (ref.isSameAddress(creator)) {
+				int oldValue = creator.getOrDefault(SERVICE_BALANCE_KEY, 0);
+				int newValue = oldValue + adjustment;
+				if (logger.isDebugEnabled()) {
+					logger.debug("dynamic service {} destination {} balance adjustment from {} to {}", name,
+							creator.hostPort(), oldValue, newValue);
+				}
+				creator.attach(SERVICE_BALANCE_KEY, newValue);
+			}
 		}
 	}
 }

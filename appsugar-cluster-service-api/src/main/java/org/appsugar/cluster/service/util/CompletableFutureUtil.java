@@ -2,6 +2,10 @@ package org.appsugar.cluster.service.util;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.appsugar.cluster.service.api.ServiceContext;
+import org.appsugar.cluster.service.api.ServiceRef;
+import org.appsugar.cluster.service.domain.FutureMessage;
+
 /**
  * 完成future帮助类
  * @author NewYoung
@@ -18,5 +22,43 @@ public class CompletableFutureUtil {
 		} else {
 			future.complete(result);
 		}
+	}
+
+	/**
+	 * 获取future中的值
+	 * @author NewYoung
+	 * 2017年5月9日下午3:14:43
+	 */
+	public static final <T> T getSilently(CompletableFuture<T> future) {
+		try {
+			return future.get();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * 包装上下文future
+	 * @author NewYoung
+	 * 2017年5月9日下午3:53:57
+	 */
+	public static <T> CompletableFuture<T> wrapContextFuture(CompletableFuture<T> future) {
+		ServiceContext context = ServiceContextUtil.context();
+		if (context == null || future.isDone() || future.isCancelled()) {
+			return future;
+		}
+		CompletableFuture<T> notifyFuture = new CompletableFuture<>();
+		future.whenComplete((r, e) -> {
+			ServiceContext ctx = ServiceContextUtil.context();
+			if (ctx == context) {
+				CompletableFutureUtil.completeNormalOrThrowable(notifyFuture, r, e);
+			} else {
+				context.self()
+						.tell(new FutureMessage<>(r, e,
+								(r1, e1) -> CompletableFutureUtil.completeNormalOrThrowable(notifyFuture, r1, e1)),
+								ctx == null ? ServiceRef.NO_SENDER : ctx.sender());
+			}
+		});
+		return notifyFuture;
 	}
 }

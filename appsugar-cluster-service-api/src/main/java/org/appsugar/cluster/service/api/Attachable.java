@@ -20,7 +20,7 @@ public interface Attachable {
 	 * @author NewYoung
 	 * 2017年5月9日下午12:52:14
 	 */
-	public <K, V> V attach(K key);
+	public <K, V> V get(K key);
 
 	/**
 	 * 数据关联

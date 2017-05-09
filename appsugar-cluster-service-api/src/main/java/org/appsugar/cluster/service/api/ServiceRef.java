@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.api;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -13,21 +14,9 @@ public interface ServiceRef extends Attachable {
 	public static final ServiceRef NO_SENDER = null;
 
 	/**
-	 * {@link ServiceRef#ask(Object, long)} 
-	 */
-	<T> T ask(Object msg);
-
-	/**
-	 * 同步请求服务并获取返回结果
-	 * @param msg 发送给服务的消息
-	 * @param timeout 服务响应超时时间
-	 */
-	<T> T ask(Object msg, long timeout);
-
-	/**
 	 * {@link ServiceRef#ask(Object, Consumer, Consumer, long)} 
 	 */
-	<T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error);
+	<T> CompletableFuture<T> ask(Object msg);
 
 	/**
 	 * 异步请求服务
@@ -36,7 +25,7 @@ public interface ServiceRef extends Attachable {
 	 * @param error 服务器调用失败后返回的错误
 	 * @param timeout 超时时间
 	 */
-	<T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, long timeout);
+	<T> CompletableFuture<T> ask(Object msg, long timeout);
 
 	/**
 	 * 给服务器发消息,线程不会阻塞.
@@ -70,5 +59,12 @@ public interface ServiceRef extends Attachable {
 	 * 服务端口
 	 */
 	String hostPort();
+
+	/**
+	 * 是否出自同一系统中
+	 * @author NewYoung
+	 * 2017年5月9日下午5:06:21
+	 */
+	boolean isSameAddress(ServiceRef ref);
 
 }

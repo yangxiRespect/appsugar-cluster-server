@@ -2,6 +2,7 @@ package org.appsugar.cluster.service.akka.system;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.appsugar.cluster.service.akka.share.TestActor;
 import org.appsugar.cluster.service.api.Service;
@@ -30,13 +31,13 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		ServiceClusterSystem system = new AkkaServiceClusterSystem("system", ConfigFactory.load());
 		Service service = new SayHelloService();
 		ServiceRef serviceRef = system.serviceFor(service, "hello");
-		String msg = serviceRef.ask("xx");
+		Object msg = serviceRef.ask("xx").get();
 		ServiceClusterRef clusterRef = system.serviceOf("hello");
-		String msg1 = clusterRef.one().ask("xxx");
+		Object msg1 = clusterRef.one().ask("xxx").get();
 		logger.debug("service return msg is {} msg 2 is {}", msg, msg1);
 		system.serviceFor(new SayHelloService(), "hello");
-		String msg2 = clusterRef.balance().ask("1");
-		String msg3 = clusterRef.random().ask("1");
+		Object msg2 = clusterRef.balance().ask("1").get();
+		Object msg3 = clusterRef.random().ask("1").get();
 		logger.debug(" cluster Ref balance {} random {} ", msg2, msg3);
 		Assert.assertEquals(clusterRef.size(), 2);
 		ServiceRef routerRef = system.serviceFor(new RouterHelloService(serviceRef), "router");
@@ -53,9 +54,11 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		long start = System.currentTimeMillis();
 		int times = 1000000;
 		for (int i = 1; i < times; i++) {
-			serviceRef.ask("1", e -> {
-			}, e -> {
-				System.out.println(e);
+			serviceRef.ask("1").whenComplete((r, e) -> {
+				if (Objects.nonNull(e)) {
+					e.printStackTrace();
+					return;
+				}
 			});
 		}
 		serviceRef.ask("c");
@@ -79,7 +82,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		//初始化五个
 		int[] prots = { 2551, 0, 0 };
 		String systemName = "ClusterSystem";
-		List<ServiceClusterSystem> systemList = new ArrayList<ServiceClusterSystem>();
+		List<ServiceClusterSystem> systemList = new ArrayList<>();
 		ServiceClusterSystem first = null;
 		for (int port : prots) {
 			Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)

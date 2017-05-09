@@ -1,6 +1,6 @@
 package org.appsugar.cluster.service.domain;
 
-import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.api.ServiceRef;
 
 /**
  * 服务状态改变消息
@@ -8,21 +8,21 @@ import org.appsugar.cluster.service.domain.Status;
  * 2016年6月3日上午3:37:59
  */
 public class ServiceStatusMessage {
-	private String name;
+	private ServiceRef serviceRef;
 	private Status status;
 
-	public ServiceStatusMessage(String name, Status status) {
+	public ServiceStatusMessage(ServiceRef serviceRef, Status status) {
 		super();
-		this.name = name;
+		this.serviceRef = serviceRef;
 		this.status = status;
 	}
 
-	public String getName() {
-		return name;
+	public ServiceRef getServiceRef() {
+		return serviceRef;
 	}
 
-	public void setName(String name) {
-		this.name = name;
+	public void setServiceRef(ServiceRef serviceRef) {
+		this.serviceRef = serviceRef;
 	}
 
 	public Status getStatus() {
@@ -36,7 +36,8 @@ public class ServiceStatusMessage {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ServiceStatusMessage [name=").append(name).append(", status=").append(status).append("]");
+		builder.append("ServiceStatusMessage [serviceRef=").append(serviceRef.name()).append(", status=").append(status)
+				.append("]");
 		return builder.toString();
 	}
 

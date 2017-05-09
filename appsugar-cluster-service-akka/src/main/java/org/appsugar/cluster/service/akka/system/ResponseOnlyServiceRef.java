@@ -1,6 +1,6 @@
 package org.appsugar.cluster.service.akka.system;
 
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
 
@@ -19,22 +19,12 @@ public class ResponseOnlyServiceRef extends AkkaServiceRef {
 	}
 
 	@Override
-	public <T> T ask(Object msg) {
+	public <T> CompletableFuture<T> ask(Object msg) {
 		throw new UnsupportedOperationException(ERROR);
 	}
 
 	@Override
-	public <T> T ask(Object msg, long timeout) {
-		throw new UnsupportedOperationException(ERROR);
-	}
-
-	@Override
-	public <T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error) {
-		throw new UnsupportedOperationException(ERROR);
-	}
-
-	@Override
-	public <T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, long timeout) {
+	public <T> CompletableFuture<T> ask(Object msg, long timeout) {
 		throw new UnsupportedOperationException(ERROR);
 	}
 

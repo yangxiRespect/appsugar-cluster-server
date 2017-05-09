@@ -72,7 +72,6 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 		long startTime = System.currentTimeMillis();
 		long endTime = startTime + event.getTimeout();
 		int sequence = requestSequence++;
-
 		ActorRef destination = event.getDestination();
 		AskPatternRequest request = new AskPatternRequest(sequence, event.getMsg());
 		destination.tell(request, ctx.getSelf());

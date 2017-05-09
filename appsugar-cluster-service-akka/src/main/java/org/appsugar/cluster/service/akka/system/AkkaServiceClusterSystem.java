@@ -9,7 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
+import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
 import org.appsugar.cluster.service.akka.share.ActorShareSystem;
 import org.appsugar.cluster.service.api.Cancellable;
@@ -43,15 +45,13 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
 	private ActorRef mediator;
-	//TODO use Guava BiMap instead of this?
-	private Map<Service, AkkaServiceRef> localServices = new ConcurrentHashMap<>();
-	private Map<AkkaServiceRef, Service> refMapService = new ConcurrentHashMap<>();
 	private Map<String, AkkaServiceClusterRef> serviceClusterRefs = new ConcurrentHashMap<>();
 	private Map<ActorRef, AkkaServiceRef> actorRefMapping = new ConcurrentHashMap<>();
 	private Set<ServiceStatusListener> serviceStatusListenerSet = new CopyOnWriteArraySet<>();
 
-	//本地actor名称,从0开始.
+	/**共享actor名称,从0开始.**/
 	private AtomicInteger actorNameGenerator = new AtomicInteger(0);
+	private AtomicInteger askActorNameGenerator = new AtomicInteger(0);
 
 	/**
 	 * 服务系统构造
@@ -61,31 +61,33 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	public AkkaServiceClusterSystem(String name, Config config) {
 		system = ActorSystem.create(name, config);
 		mediator = DistributedPubSub.get(system).mediator();
-		actorShareSystem = ActorShareSystem.getSystem(system, (a, s) -> {
+		actorShareSystem = ActorShareSystem.getSystem(system, (actorShareList, s) -> {
+			Consumer<ActorShare> consumer = null;
 			if (ClusterStatus.UP == s) {
-				a.stream().forEach(ref -> {
+				consumer = ref -> {
 					String shareName = ref.getName();
 					ActorRef actorRef = ref.getActorRef();
 					MessageProcessorChain chain = new MessageProcessorChain(new AskPatternMessageProcessor());
 					ActorRef askPatternRef = system.actorOf(Props.create(ProcessorChainActor.class, chain),
-							"" + actorNameGenerator.getAndIncrement());
+							"ask" + askActorNameGenerator.getAndIncrement());
 					AkkaServiceRef akkaServiceRef = new AkkaServiceRef(actorRef, shareName, askPatternRef);
 					actorRefMapping.put(actorRef, akkaServiceRef);
 					getAndCreateServiceClusterRef(shareName).addServiceRef(akkaServiceRef);
 					notifyServiceStatusListener(akkaServiceRef, Status.ACTIVE);
-				});
+				};
 			} else {
-				a.stream().forEach(ref -> {
-					if (!actorRefMapping.containsKey(ref.getActorRef())) {
+				consumer = ref -> {
+					AkkaServiceClusterRef clusterRef = serviceClusterRefs.get(ref.getName());
+					if (Objects.isNull(clusterRef)) {
 						return;
 					}
-					AkkaServiceClusterRef clusterRef = serviceClusterRefs.get(ref.getName());
 					AkkaServiceRef serviceRef = actorRefMapping.remove(ref.getActorRef());
 					clusterRef.removeServiceRef(serviceRef);
 					system.stop(serviceRef.askPatternActorRef());
 					notifyServiceStatusListener(serviceRef, Status.INACTIVE);
-				});
+				};
 			}
+			actorShareList.stream().forEach(consumer);
 		});
 	}
 
@@ -136,26 +138,9 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	public CompletableFuture<ServiceRef> serviceForAsync(Service service, String name, boolean local) {
 		MessageProcessorChain chain = new MessageProcessorChain(new ServiceContextBindingProcessor(this),
 				new FutureMessageProcessor(), new AskPatternMessageProcessor(), new ServiceInvokeProcessor(service));
-		//创建一个service actor
 		ActorRef ref = system.actorOf(Props.create(ProcessorChainActor.class, chain),
-				actorNameGenerator.getAndIncrement() + "");
-		CompletableFuture<ServiceRef> serviceRefFuture = new CompletableFuture<>();
-		CompletableFuture<Void> future = actorShareSystem.share(ref, name, local);
-		future.whenComplete((r, e) -> {
-			if (Objects.nonNull(e)) {
-				serviceRefFuture.completeExceptionally(new RuntimeException("create service error"));
-				return;
-			}
-			try {
-				AkkaServiceRef result = actorRefMapping.get(ref);
-				localServices.put(service, result);
-				refMapService.put(result, service);
-				serviceRefFuture.complete(result);
-			} catch (RuntimeException ex) {
-				serviceRefFuture.completeExceptionally(ex);
-			}
-		});
-		return serviceRefFuture;
+				String.valueOf(actorNameGenerator.getAndIncrement()));
+		return actorShareSystem.share(ref, name, local).thenApply(v -> actorRefMapping.get(ref));
 	}
 
 	@Override
@@ -184,12 +169,8 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 
 	@Override
 	public void stop(ServiceRef serviceRef) {
+		Objects.requireNonNull(serviceRef);
 		AkkaServiceRef ref = (AkkaServiceRef) serviceRef;
-		if (ref == null) {
-			return;
-		}
-		Service service = refMapService.remove(serviceRef);
-		localServices.remove(service);
 		system.stop(ref.destination());
 	}
 
@@ -205,7 +186,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 
 	private AkkaServiceClusterRef getAndCreateServiceClusterRef(String name) {
 		AkkaServiceClusterRef ref = serviceClusterRefs.get(name);
-		if (ref == null) {
+		if (Objects.isNull(ref)) {
 			ref = new AkkaServiceClusterRef(name);
 			serviceClusterRefs.put(name, ref);
 		}
@@ -216,7 +197,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 		for (ServiceStatusListener listener : serviceStatusListenerSet) {
 			try {
 				listener.handle(ref, status);
-			} catch (Exception ex) {
+			} catch (Throwable ex) {
 				logger.error("notify service status listener error {}", ex);
 			}
 		}

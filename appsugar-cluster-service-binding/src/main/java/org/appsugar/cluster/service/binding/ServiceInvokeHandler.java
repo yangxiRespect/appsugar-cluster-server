@@ -68,42 +68,30 @@ public class ServiceInvokeHandler implements InvocationHandler {
 			throw new ServiceNotFoundException("service " + name + " not ready");
 		}
 		Object message = populateMethodInvokerMessage(method, args, serviceRef);
-		return CompletableFuture.class.isAssignableFrom(method.getReturnType())
-				? invokeAsync(message, serviceRef, method) : invokeSync(message, serviceRef, method);
+		CompletableFuture<?> future = invokeAsync(message, serviceRef, method);
+		return CompletableFuture.class.isAssignableFrom(method.getReturnType()) ? future : future.get();
 	}
 
 	protected CompletableFuture<Object> invokeAsync(Object message, ServiceRef serviceRef, Method method)
 			throws Throwable {
-		CompletableFuture<Object> future = new CompletableFuture<>();
 		long timeout = 30000;
 		ExecuteTimeout timeOutAnnotation = method.getAnnotation(ExecuteTimeout.class);
 		if (timeOutAnnotation != null) {
 			timeout = timeOutAnnotation.value();
 		}
-		serviceRef.ask(message, result -> {
+		return serviceRef.ask(message, timeout).thenApply(result -> {
 			if (result instanceof MethodInvokeOptimizingResponse) {
 				MethodInvokeOptimizingResponse response = (MethodInvokeOptimizingResponse) result;
 				optimizeMethodInvoker(method, response.getSequence(), serviceRef);
-				future.complete(response.getResult());
-				return;
+				return response.getResult();
 			}
-			future.complete(result);
-		}, e -> future.completeExceptionally(e), timeout);
-		return future;
-	}
+			return result;
+		});
 
-	protected Object invokeSync(Object message, ServiceRef serviceRef, Method method) throws Throwable {
-		Object result = serviceRef.ask(message);
-		if (result instanceof MethodInvokeOptimizingResponse) {
-			MethodInvokeOptimizingResponse response = (MethodInvokeOptimizingResponse) result;
-			optimizeMethodInvoker(method, response.getSequence(), serviceRef);
-			return response.getResult();
-		}
-		return result;
 	}
 
 	protected Object populateMethodInvokerMessage(Method method, Object[] params, ServiceRef ref) {
-		Map<Method, Integer> sequenceMap = ref.attach(METHOD_CACHE_KEY);
+		Map<Method, Integer> sequenceMap = ref.get(METHOD_CACHE_KEY);
 		if (sequenceMap == null || sequenceMap.get(method) == null) {
 			return new MethodInvokeMessage(paramNameMap.get(method), params);
 		}
@@ -114,10 +102,10 @@ public class ServiceInvokeHandler implements InvocationHandler {
 
 	protected void optimizeMethodInvoker(Method method, Integer sequence, ServiceRef ref) {
 		//使用乐观锁
-		Map<Method, Integer> sequenceMap = ref.attach(METHOD_CACHE_KEY);
+		Map<Method, Integer> sequenceMap = ref.get(METHOD_CACHE_KEY);
 		if (sequenceMap == null) {
 			synchronized (ref) {
-				sequenceMap = ref.attach(METHOD_CACHE_KEY);
+				sequenceMap = ref.get(METHOD_CACHE_KEY);
 				if (sequenceMap == null) {
 					sequenceMap = new ConcurrentHashMap<>();
 					ref.attach(METHOD_CACHE_KEY, sequenceMap);

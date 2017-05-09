@@ -9,6 +9,6 @@ import org.appsugar.cluster.service.domain.Status;
  */
 public interface ServiceListener {
 
-	void handle(String name, Status status);
+	void handle(ServiceRef ref, Status status);
 
 }

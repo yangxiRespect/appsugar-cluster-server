@@ -1,21 +1,18 @@
 package org.appsugar.cluster.service.akka.system;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import org.appsugar.cluster.service.akka.domain.AskPatternEvent;
 import org.appsugar.cluster.service.api.ServiceRef;
-import org.appsugar.cluster.service.domain.FutureMessage;
-import org.appsugar.cluster.service.domain.ServiceException;
+import org.appsugar.cluster.service.util.CompletableFutureUtil;
 import org.appsugar.cluster.service.util.ServiceContextUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import scala.Option;
 
 /**
@@ -25,7 +22,6 @@ import scala.Option;
  */
 public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
-	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceRef.class);
 	//默认三十秒超时
 	public static final long defaultTimeout = 1000 * 30;
 	//目的地引用
@@ -34,13 +30,15 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 	private String name;
 	//用于askPattern引用
 	private ActorRef askPatternRef;
+	/**系统名称**/
+	private String system;
+
+	private Address address;
 	/**附件信息**/
 	private Map<Object, Object> attachments = new ConcurrentHashMap<>();
 
 	public AkkaServiceRef(ActorRef destination, String name) {
-		super();
-		this.destination = destination;
-		this.name = name;
+		this(destination, name, null);
 	}
 
 	public AkkaServiceRef(ActorRef destination, String name, ActorRef askPatternRef) {
@@ -48,86 +46,42 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 		this.destination = destination;
 		this.name = name;
 		this.askPatternRef = askPatternRef;
+		this.address = destination.path().address();
+		this.system = this.address.system();
 	}
 
 	@Override
-	public <T> T ask(Object msg) {
+	public <T> CompletableFuture<T> ask(Object msg) {
 		return ask(msg, defaultTimeout);
 	}
 
 	@Override
-	public <T> T ask(Object msg, long timeout) {
+	public <T> CompletableFuture<T> ask(Object msg, long timeout) {
 		if (timeout < 1l) {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
-		try {
-			CompletableFuture<T> future = new CompletableFuture<>();
-			AkkaServiceContext context = (AkkaServiceContext) ServiceContextUtil.context();
-			if (context != null && context.self().destination.equals(destination)) {
-				//服务调用自己,直接发送
-				ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
-				pctx.processNext(new AskPatternEvent<>(msg, future, timeout, destination));
-				return future.get();
-			} else if (context != null) {
-				logger.debug("server ask in sync pattern  this will cause performance  problem");
-			}
-			AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
-			askPatternRef.tell(event, ActorRef.noSender());
-			return future.get();
-		} catch (Throwable e) {
-			throw new ServiceException("execute ask request error", e);
-		}
-	}
-
-	@Override
-	public <T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error) {
-		ask(msg, success, error, defaultTimeout);
-	}
-
-	@Override
-	public <T> void ask(Object msg, Consumer<T> success, Consumer<Throwable> error, long timeout) {
-		if (timeout < 1l) {
-			throw new IllegalArgumentException("timeout mush greater than 0");
-		}
-		BiConsumer<T, Throwable> consumer = (r, e) -> {
-			if (e != null) {
-				error.accept(e);
-				return;
-			}
-			success.accept(r);
-		};
+		CompletableFuture<T> future = new CompletableFuture<>();
 		AkkaServiceContext context = (AkkaServiceContext) ServiceContextUtil.context();
-		ActorRef sender = askPatternRef;
-		if (context != null) {
-			//如果在服务执行上下文中, 那么该请求转发至该服务中处理
-			sender = context.self().destination;
+		if (Objects.nonNull(context)) {
+			ServiceRef self = context.self();
 			//处理非同一系统请求
-			if (!sender.path().address().system().equals(destination.path().address().system())) {
-				CompletableFuture<T> middleware = new CompletableFuture<>();
-				middleware.whenComplete((r, e) -> {
-					//把结果转发到context.self
-					ActorRef self = context.self().destination;
-					self.tell(new FutureMessage<>(r, e, consumer), destination);
-				});
+			if (!((AkkaServiceRef) self).system.equals(this.system)) {
 				//把消息交由askPatterRef去请求.
-				askPatternRef.tell(new AskPatternEvent<>(msg, middleware, timeout, destination), ActorRef.noSender());
-				return;
+				askPatternRef.tell(new AskPatternEvent<>(msg, future, timeout, destination), ActorRef.noSender());
+				return CompletableFutureUtil.wrapContextFuture(future);
 			}
 			//解决多次tell性能问题
-			CompletableFuture<T> future = new CompletableFuture<>();
-			future.whenComplete(consumer);
 			ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
 			try {
 				pctx.processNext(new AskPatternEvent<>(msg, future, timeout, destination));
 			} catch (Throwable e) {
-				//do nothing
+				future.completeExceptionally(e);
 			}
-			return;
+			return future;
 		}
-		CompletableFuture<T> future = new CompletableFuture<>();
-		future.whenComplete(consumer);
 		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
-		sender.tell(event, ActorRef.noSender());
+		askPatternRef.tell(event, ActorRef.noSender());
+		return future;
 	}
 
 	@Override
@@ -215,7 +169,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <K, V> V attach(K key) {
+	public <K, V> V get(K key) {
 		return (V) attachments.get(key);
 	}
 
@@ -223,6 +177,12 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 	public <K, V> V attach(K key, V value) {
 		attachments.put(key, value);
 		return value;
+	}
+
+	@Override
+	public boolean isSameAddress(ServiceRef ref) {
+		AkkaServiceRef des = (AkkaServiceRef) ref;
+		return this.destination.path().address().equals(des.destination.path().address());
 	}
 
 }

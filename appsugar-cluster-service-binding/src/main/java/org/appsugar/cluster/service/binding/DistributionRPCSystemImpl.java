@@ -26,6 +26,7 @@ import org.appsugar.cluster.service.domain.ServiceDescriptor;
 import org.appsugar.cluster.service.domain.ServiceException;
 import org.appsugar.cluster.service.domain.ServiceStatusMessage;
 import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.util.CompletableFutureUtil;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
 import org.appsugar.cluster.service.util.ServiceContextUtil;
 import org.slf4j.Logger;
@@ -39,11 +40,11 @@ import org.slf4j.LoggerFactory;
 public class DistributionRPCSystemImpl implements DistributionRPCSystem, ServiceListener {
 	private static final Logger logger = LoggerFactory.getLogger(DistributionRPCSystemImpl.class);
 	private ServiceClusterSystem system;
-	private Map<String, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
 	private Set<ServiceListener> serviceListeners = new CopyOnWriteArraySet<>();
 	private Map<Object, Object> proxyCache = new ConcurrentHashMap<>();
 	private Map<String, Map<Class<?>, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
-
+	/**本地服务引用**/
+	protected Map<String, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
 	protected Map<String, Integer> serviceStatus = new ConcurrentHashMap<>();
 
 	public DistributionRPCSystemImpl(ServiceClusterSystem system) {
@@ -59,7 +60,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 			if (count > 1) {
 				return;
 			}
-			notifyServiceListener(n.name(), s);
+			notifyServiceListener(n, s);
 		});
 		addServiceListener(this);
 	}
@@ -117,7 +118,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
 		}
 		ServiceRef ref = masterFunction.apply(clusterRef);
-		ref.ask(new DynamicServiceRequest(sequence, location));
+		CompletableFutureUtil.getSilently(ref.ask(new DynamicServiceRequest(sequence, location)));
 		instance = (T) serviceProxyCache.get(ic);
 		if (instance != null) {
 			return instance;
@@ -201,10 +202,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		});
 	}
 
-	protected void notifyServiceListener(String name, Status s) {
+	protected void notifyServiceListener(ServiceRef ref, Status s) {
 		for (ServiceListener l : serviceListeners) {
 			try {
-				l.handle(name, s);
+				l.handle(ref, s);
 			} catch (Throwable e) {
 				logger.error("notify service listener error", e);
 			}
@@ -212,14 +213,14 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	}
 
 	@Override
-	public void handle(String name, Status status) {
-		ServiceStatusMessage msg = new ServiceStatusMessage(name, status);
+	public void handle(ServiceRef ref, Status status) {
+		ServiceStatusMessage msg = new ServiceStatusMessage(ref, status);
 		if (Status.INACTIVE.equals(status)) {
 			//动态服务需要移除,避免某些情况下无法创建动态服务
-			dynamicProxyCache.remove(name);
+			dynamicProxyCache.remove(ref.name());
 		}
-		for (ServiceRef ref : serviceRefs.values()) {
-			ref.tell(msg, ServiceRef.NO_SENDER);
+		for (ServiceRef serviceRef : serviceRefs.values()) {
+			serviceRef.tell(msg, ServiceRef.NO_SENDER);
 		}
 	}
 
