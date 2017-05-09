@@ -8,7 +8,7 @@ import java.util.function.Consumer;
  * @author NewYoung
  * 2016年5月23日下午2:16:32
  */
-public interface ServiceRef {
+public interface ServiceRef extends Attachable {
 
 	public static final ServiceRef NO_SENDER = null;
 

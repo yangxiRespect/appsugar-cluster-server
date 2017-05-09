@@ -61,7 +61,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		if (!ref.path().address().hasLocalScope()) {
 			throw new RuntimeException("actor ref not local  " + ref);
 		}
-		CompletableFuture<Void> future = new CompletableFuture<Void>();
+		CompletableFuture<Void> future = new CompletableFuture<>();
 		//逻辑交给共享actor收集器处理
 		shareCollectorRef.tell(new LocalShareMessage(name, ref, future, local), ActorRef.noSender());
 		return future;
@@ -84,14 +84,14 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		try {
 			actorShareListener.handle(actors, status);
 		} finally {
+			ActorShare actorShare = actors.get(0);
 			//如果是本地actor服务(本地服务一次只会有一个)
-			if (actors.get(0).getActorRef().path().address().hasLocalScope()) {
+			if (actorShare.getActorRef().path().address().hasLocalScope()) {
 				if (ClusterStatus.UP.equals(status)) {
 					localActorRefList.addAll(actors);
 				} else {
 					localActorRefList.removeAll(actors);
 				}
-				ActorShare actorShare = actors.get(0);
 				if (actorShare.isLocal()) {
 					return;
 				}
@@ -101,7 +101,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 								new ActorClusterShareMessage(status, new ActorShare(actorShare.getName())),
 								actorShare.getActorRef()));
 			} else {
-				ActorShare actorShare = actors.get(0);
 				List<ActorShare> remoteActorList = getAndCreateShareActorCollection(
 						actorShare.getActorRef().path().address());
 				if (ClusterStatus.UP.equals(status)) {

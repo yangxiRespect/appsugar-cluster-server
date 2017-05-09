@@ -1,7 +1,9 @@
 package org.appsugar.cluster.service.akka.system;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -32,6 +34,8 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 	private String name;
 	//用于askPattern引用
 	private ActorRef askPatternRef;
+	/**附件信息**/
+	private Map<Object, Object> attachments = new ConcurrentHashMap<>();
 
 	public AkkaServiceRef(ActorRef destination, String name) {
 		super();
@@ -57,7 +61,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
 		try {
-			CompletableFuture<T> future = new CompletableFuture<T>();
+			CompletableFuture<T> future = new CompletableFuture<>();
 			AkkaServiceContext context = (AkkaServiceContext) ServiceContextUtil.context();
 			if (context != null && context.self().destination.equals(destination)) {
 				//服务调用自己,直接发送
@@ -103,14 +107,14 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 				middleware.whenComplete((r, e) -> {
 					//把结果转发到context.self
 					ActorRef self = context.self().destination;
-					self.tell(new FutureMessage<T>(r, e, consumer), destination);
+					self.tell(new FutureMessage<>(r, e, consumer), destination);
 				});
 				//把消息交由askPatterRef去请求.
 				askPatternRef.tell(new AskPatternEvent<>(msg, middleware, timeout, destination), ActorRef.noSender());
 				return;
 			}
 			//解决多次tell性能问题
-			CompletableFuture<T> future = new CompletableFuture<T>();
+			CompletableFuture<T> future = new CompletableFuture<>();
 			future.whenComplete(consumer);
 			ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
 			try {
@@ -120,7 +124,7 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 			}
 			return;
 		}
-		CompletableFuture<T> future = new CompletableFuture<T>();
+		CompletableFuture<T> future = new CompletableFuture<>();
 		future.whenComplete(consumer);
 		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
 		sender.tell(event, ActorRef.noSender());
@@ -201,6 +205,24 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 	@Override
 	public int compareTo(AkkaServiceRef o) {
 		return o == null ? 1 : this.destination.path().toString().compareTo(o.destination.path().toString());
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <K, V> V getOrDefault(K key, V defaultValue) {
+		return (V) attachments.getOrDefault(key, defaultValue);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <K, V> V attach(K key) {
+		return (V) attachments.get(key);
+	}
+
+	@Override
+	public <K, V> V attach(K key, V value) {
+		attachments.put(key, value);
+		return value;
 	}
 
 }

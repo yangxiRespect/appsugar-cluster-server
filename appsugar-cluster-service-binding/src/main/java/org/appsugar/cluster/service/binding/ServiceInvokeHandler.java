@@ -25,10 +25,9 @@ import org.appsugar.cluster.service.util.RPCSystemUtil;
  * 2016年6月3日下午5:52:50
  */
 public class ServiceInvokeHandler implements InvocationHandler {
-
+	public static final String METHOD_CACHE_KEY = "fast_method_cache";
 	private String name;
 	private ServiceClusterSystem system;
-	private Map<ServiceRef, Map<Method, Integer>> serviceMethodSequenceMap = new ConcurrentHashMap<>();
 	private Map<Method, List<String>> paramNameMap;
 	private Class<?> interfaceClass;
 
@@ -75,7 +74,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 
 	protected CompletableFuture<Object> invokeAsync(Object message, ServiceRef serviceRef, Method method)
 			throws Throwable {
-		CompletableFuture<Object> future = new CompletableFuture<Object>();
+		CompletableFuture<Object> future = new CompletableFuture<>();
 		long timeout = 30000;
 		ExecuteTimeout timeOutAnnotation = method.getAnnotation(ExecuteTimeout.class);
 		if (timeOutAnnotation != null) {
@@ -104,7 +103,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 	}
 
 	protected Object populateMethodInvokerMessage(Method method, Object[] params, ServiceRef ref) {
-		Map<Method, Integer> sequenceMap = serviceMethodSequenceMap.get(ref);
+		Map<Method, Integer> sequenceMap = ref.attach(METHOD_CACHE_KEY);
 		if (sequenceMap == null || sequenceMap.get(method) == null) {
 			return new MethodInvokeMessage(paramNameMap.get(method), params);
 		}
@@ -115,13 +114,13 @@ public class ServiceInvokeHandler implements InvocationHandler {
 
 	protected void optimizeMethodInvoker(Method method, Integer sequence, ServiceRef ref) {
 		//使用乐观锁
-		Map<Method, Integer> sequenceMap = serviceMethodSequenceMap.get(ref);
+		Map<Method, Integer> sequenceMap = ref.attach(METHOD_CACHE_KEY);
 		if (sequenceMap == null) {
-			synchronized (serviceMethodSequenceMap) {
-				sequenceMap = serviceMethodSequenceMap.get(ref);
+			synchronized (ref) {
+				sequenceMap = ref.attach(METHOD_CACHE_KEY);
 				if (sequenceMap == null) {
 					sequenceMap = new ConcurrentHashMap<>();
-					serviceMethodSequenceMap.put(ref, sequenceMap);
+					ref.attach(METHOD_CACHE_KEY, sequenceMap);
 				}
 			}
 		}
