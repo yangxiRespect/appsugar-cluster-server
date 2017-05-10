@@ -51,19 +51,21 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	public DistributionRPCSystemImpl(ServiceClusterSystem system) {
 		super();
 		this.system = system;
-		system.addServiceStatusListener((n, s) -> {
-			String name = n.name();
-			Integer oldCount = serviceStatus.get(name);
-			oldCount = oldCount == null ? 0 : oldCount;
-			int count = oldCount + (Status.ACTIVE.equals(s) ? 1 : -1);
-			serviceStatus.put(name, count);
-			//只在存在一个服务,和失去所有服务时才调用
-			if (count > 1) {
-				return;
-			}
-			notifyServiceListener(n, s);
-		});
+		system.addServiceStatusListener(this::handleServiceStatus);
 		addServiceListener(this);
+	}
+
+	void handleServiceStatus(ServiceRef ref, Status status) {
+		String name = ref.name();
+		Integer oldCount = serviceStatus.get(name);
+		oldCount = oldCount == null ? 0 : oldCount;
+		int count = oldCount + (Status.ACTIVE.equals(status) ? 1 : -1);
+		serviceStatus.put(name, count);
+		//只在存在一个服务,和失去所有服务时才调用
+		if (count > 1) {
+			return;
+		}
+		notifyServiceListener(ref, status);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -142,11 +144,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 
 	@Override
 	public void serviceFor(ServiceDescriptor descriptor, String name) {
-		try {
-			serviceForAsync(descriptor, name).get();
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
-		}
+		CompletableFutureUtil.getSilently(serviceForAsync(descriptor, name));
 	}
 
 	@Override
@@ -157,19 +155,12 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 			servesMap.put(interfaceClass, serve);
 		}
 		Service service = new RPCService(system, this, servesMap);
-		CompletableFuture<Void> result = new CompletableFuture<>();
-		//确保回调在服务上下文中执行
-		RPCSystemUtil.wrapContextFuture(system.serviceForAsync(service, name, descriptor.isLocal()))
-				.whenComplete((r, e) -> {
-					if (Objects.nonNull(e)) {
-						result.completeExceptionally(e);
-						return;
-					}
+		return RPCSystemUtil.wrapContextFuture(system.serviceForAsync(service, name, descriptor.isLocal()))
+				.thenApply(r -> {
 					serviceRefs.put(name, r);
 					r.tell(RepeatMessage.instance, ServiceRef.NO_SENDER);
-					result.complete(null);
+					return null;
 				});
-		return result;
 	}
 
 	@Override
