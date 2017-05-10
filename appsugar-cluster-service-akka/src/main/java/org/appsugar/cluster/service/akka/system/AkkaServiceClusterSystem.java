@@ -1,6 +1,8 @@
 package org.appsugar.cluster.service.akka.system;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -41,6 +43,7 @@ import scala.concurrent.duration.Duration;
  * 2016年5月30日下午2:58:10 
  */
 public class AkkaServiceClusterSystem implements ServiceClusterSystem {
+	private static final String FOCUS_TOPIC_KEY = "focus_topic";
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
@@ -108,6 +111,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 		ActorRef actorRef = akkaServiceRef.destination();
 		//关注
 		mediator.tell(new DistributedPubSubMediator.Subscribe(topic, actorRef), actorRef);
+		akkaServiceRef.getOrSet(FOCUS_TOPIC_KEY, ArrayList::new).add(topic);
 	}
 
 	@Override
@@ -171,6 +175,9 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	public void stop(ServiceRef serviceRef) {
 		Objects.requireNonNull(serviceRef);
 		AkkaServiceRef ref = (AkkaServiceRef) serviceRef;
+		List<String> focusTopics = ref.getOrDefault(FOCUS_TOPIC_KEY, Collections.emptyList());
+		focusTopics.forEach(
+				e -> mediator.tell(new DistributedPubSubMediator.Unsubscribe(e, ref.destination()), ref.destination()));
 		system.stop(ref.destination());
 	}
 

@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import org.appsugar.cluster.service.akka.domain.AskPatternEvent;
 import org.appsugar.cluster.service.api.ServiceRef;
@@ -165,6 +166,17 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 	@Override
 	public <K, V> V getOrDefault(K key, V defaultValue) {
 		return (V) attachments.getOrDefault(key, defaultValue);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <K, V> V getOrSet(K key, Supplier<V> supplier) {
+		V value = (V) attachments.get(key);
+		if (Objects.isNull(value)) {
+			value = supplier.get();
+			attach(key, value);
+		}
+		return value;
 	}
 
 	@SuppressWarnings("unchecked")

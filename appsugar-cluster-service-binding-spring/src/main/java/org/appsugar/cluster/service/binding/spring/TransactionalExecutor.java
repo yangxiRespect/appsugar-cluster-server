@@ -1,7 +1,8 @@
 package org.appsugar.cluster.service.binding.spring;
 
-import org.appsugar.cluster.service.binding.spring.function.ThrowableSupplier;
 import org.springframework.transaction.annotation.Transactional;
+
+import function.ThrowableSupplier;
 
 /**
  * spring事物

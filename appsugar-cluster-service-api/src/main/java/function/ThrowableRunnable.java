@@ -1,4 +1,4 @@
-package org.appsugar.cluster.service.binding.spring.function;
+package function;
 
 /**
  * 可抛异常Runnable

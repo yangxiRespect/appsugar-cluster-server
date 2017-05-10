@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.api;
 
+import java.util.function.Supplier;
+
 /**
  * 附件接口
  * @author NewYoung
@@ -14,6 +16,14 @@ public interface Attachable {
 	 * 2017年5月9日下午12:55:10
 	 */
 	public <K, V> V getOrDefault(K key, V defaultValue);
+
+	/**
+	 * 根据key获取数据
+	 * 如果没有,那么返回默认值(懒加载).默认数据会attach
+	 * @author NewYoung
+	 * 2017年5月9日下午12:55:10
+	 */
+	public <K, V> V getOrSet(K key, Supplier<V> supplier);
 
 	/**
 	 * 根据key值获取附件信息
