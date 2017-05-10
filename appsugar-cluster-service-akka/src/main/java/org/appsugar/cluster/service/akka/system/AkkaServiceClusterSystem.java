@@ -101,8 +101,12 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	 * 根据actorRef获取对应服务引用
 	 */
 	public AkkaServiceRef resolveRef(ActorRef ref) {
+		if (Objects.isNull(ref)) {
+			return null;
+		}
 		AkkaServiceRef akkaServiceRef = actorRefMapping.get(ref);
-		return akkaServiceRef != null ? akkaServiceRef : new ResponseOnlyServiceRef(ref, "ResponseOnlyServiceRef");
+		return Objects.nonNull(akkaServiceRef) ? akkaServiceRef
+				: new ResponseOnlyServiceRef(ref, "ResponseOnlyServiceRef");
 	}
 
 	@Override

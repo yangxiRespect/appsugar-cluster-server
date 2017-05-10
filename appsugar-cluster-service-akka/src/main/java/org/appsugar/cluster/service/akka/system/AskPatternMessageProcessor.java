@@ -135,6 +135,8 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	 */
 	protected void processRepeatEvent(RepeatEvent event, ProcessorContext ctx) {
 		if (waitingCount < 1) {
+			//fix memory leak 
+			refMarkerMap.clear();
 			if (cancellable == null) {
 				return;
 			}
