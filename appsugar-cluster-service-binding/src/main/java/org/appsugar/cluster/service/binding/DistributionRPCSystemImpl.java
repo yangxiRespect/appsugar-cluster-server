@@ -20,6 +20,7 @@ import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceListener;
 import org.appsugar.cluster.service.api.ServiceRef;
+import org.appsugar.cluster.service.domain.CommandMessage;
 import org.appsugar.cluster.service.domain.DynamicServiceRequest;
 import org.appsugar.cluster.service.domain.RepeatMessage;
 import org.appsugar.cluster.service.domain.ServiceDescriptor;
@@ -198,7 +199,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 			if (!e.hasLocalScope()) {
 				return;
 			}
-			system.stop(e);
+			e.ask(new CommandMessage(CommandMessage.CLOSE_COMMAND));
 		});
 	}
 

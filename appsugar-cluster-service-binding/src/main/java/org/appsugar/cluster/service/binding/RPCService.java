@@ -3,11 +3,13 @@ package org.appsugar.cluster.service.binding;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
+import org.appsugar.cluster.service.domain.CommandMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeOptimizingMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeOptimizingResponse;
@@ -34,9 +36,11 @@ public class RPCService implements Service {
 	private Map<String, List<ServiceStatusHelper>> serviceReadyInvokerMap;
 	private Map<String, List<MethodInvoker>> eventInvokerMap;
 	private List<RepeatInvoker> repeatInvokers;
+	private List<MethodInvoker> closeInvoker;
 	private Map<Class<?>, ?> serves;
 	private int sequence = 0;
 	private boolean needInit = false;
+	private boolean stopped = false;
 
 	public RPCService(ServiceClusterSystem system, DistributionRPCSystemImpl rpcSystem, Map<Class<?>, ?> serves) {
 		super();
@@ -47,6 +51,10 @@ public class RPCService implements Service {
 
 	@Override
 	public Object handle(Object msg, ServiceContext context) throws Throwable {
+		if (stopped) {
+			logger.error("service {} was closed can't handle message anymore {}", context.self(), msg);
+			return false;
+		}
 		initIfNecessary(context);
 		if (msg instanceof MethodInvokeOptimizingMessage) {
 			return processMethodInvokeOptimizingMessage((MethodInvokeOptimizingMessage) msg);
@@ -66,6 +74,10 @@ public class RPCService implements Service {
 		//处理方法调用消息
 		else if (msg instanceof MethodInvokeMessage) {
 			return processMethodInvokeMessage((MethodInvokeMessage) msg);
+		}
+		//处理命令消息
+		else if (msg instanceof CommandMessage) {
+			return processCommandMessage((CommandMessage) msg, context);
 		}
 		return null;
 	}
@@ -174,6 +186,29 @@ public class RPCService implements Service {
 		return invoker.invoke(msg.getParams());
 	}
 
+	/**
+	 * 处理命令消息
+	 * @author NewYoung
+	 * 2017年5月10日上午10:13:47
+	 */
+	protected Object processCommandMessage(CommandMessage commandMessage, ServiceContext context) {
+		if (Objects.equals(CommandMessage.CLOSE_COMMAND, commandMessage.cmd)) {
+			logger.info("prepar to stop self manully self {}    sender {}", context.self(), context.sender());
+			context.system().stop(context.self());
+			stopped = true;
+			closeInvoker.stream().forEach(e -> {
+				try {
+					e.invoke(null);
+				} catch (Throwable ex) {
+					logger.error("invoke service close method error ", ex);
+				}
+			});
+		} else {
+			return false;
+		}
+		return true;
+	}
+
 	protected void initIfNecessary(ServiceContext context) throws Exception {
 		if (needInit) {
 			return;
@@ -207,6 +242,8 @@ public class RPCService implements Service {
 			} catch (Throwable ex) {
 			}
 		});
+		//处理关闭方法
+		closeInvoker = RPCSystemUtil.getCloseInvoker(serves);
 	}
 
 }

@@ -12,12 +12,14 @@ import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.api.ServiceRef;
+import org.appsugar.cluster.service.domain.CommandMessage;
 import org.appsugar.cluster.service.domain.DynamicServiceCreateMessage;
 import org.appsugar.cluster.service.domain.DynamicServiceRequest;
 import org.appsugar.cluster.service.domain.ServiceStatusMessage;
 import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
+import org.appsugar.cluster.service.util.ServiceContextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +64,11 @@ public class DynamicCreatorService implements Service {
 			return handleDynamicServiceCreateMessage((DynamicServiceCreateMessage) msg);
 		} else if (msg instanceof ServiceStatusMessage) {
 			handleServiceStatusMessage((ServiceStatusMessage) msg);
+		} else if (msg instanceof CommandMessage) {
+			if (Objects.equals(CommandMessage.CLOSE_COMMAND, ((CommandMessage) msg).cmd)) {
+				logger.info("prepar to stop self manully self {}    sender {}", context.self(), context.sender());
+				context.system().stop(context.self());
+			}
 		}
 		return null;
 	}
@@ -77,6 +84,7 @@ public class DynamicCreatorService implements Service {
 		}
 		int balanceAdjustment = 1;
 		if (Objects.equals(Status.ACTIVE, msg.getStatus())) {
+			checkSameNameServiceIfNescessary(ref);
 			if (!createdServices.add(sequence)) {
 				//服务已存在.不重复添加
 				return;
@@ -197,4 +205,22 @@ public class DynamicCreatorService implements Service {
 			}
 		}
 	}
+
+	/**
+	 * 处理动态服务重名问题
+	 * @author NewYoung
+	 * 2017年5月10日上午10:34:59
+	 */
+	void checkSameNameServiceIfNescessary(ServiceRef ref) {
+		if (system.serviceOf(ref.name()).size() < 2) {
+			return;
+		}
+		ServiceContext context = ServiceContextUtil.context();
+		if (!Objects.equals(system.serviceOf(this.name).leader(), context.self())) {
+			return;
+		}
+		logger.info("leader detect dynamic service was duplicate prepar to stop {}", ref);
+		ref.ask(new CommandMessage(CommandMessage.CLOSE_COMMAND));
+	}
+
 }

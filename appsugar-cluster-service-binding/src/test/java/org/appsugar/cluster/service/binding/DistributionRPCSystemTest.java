@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.annotation.DynamicService;
 import org.appsugar.cluster.service.annotation.ExecuteDefault;
+import org.appsugar.cluster.service.annotation.ExecuteOnClose;
 import org.appsugar.cluster.service.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.annotation.Service;
@@ -64,7 +65,7 @@ public class DistributionRPCSystemTest extends TestCase {
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("ClusterSystem", config));
 		system.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), Hello.serviceName);
-		Thread.sleep(8000);
+		Thread.sleep(4000);
 	}
 
 	public void testRemoteInvoke() throws Exception {
@@ -152,21 +153,26 @@ class HelloImpl implements Hello {
 
 	@ExecuteOnServiceReady
 	public void setHello(Hello hello, Status status) {
-		System.out.println("1234 " + status);
+		System.out.println("============================service ready============================  " + status);
 	}
 
 	@ExecuteDefault
 	public void init() {
-		System.out.println("init ");
+		System.out.println("============================init============================ ");
 	}
 
 	@ExecuteOnEvent("play")
 	public void event(String a) {
-		System.out.println("event " + a);
+		System.out.println("============================event============================ " + a);
 	}
 
 	@ExecuteOnEvent("play")
 	public void event1(Integer a) {
-		System.out.println("event " + a);
+		System.out.println("============================event============================ " + a);
+	}
+
+	@ExecuteOnClose
+	public void close() {
+		System.out.println("=========================service closed============================");
 	}
 }

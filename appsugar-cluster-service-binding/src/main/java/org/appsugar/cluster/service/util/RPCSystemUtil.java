@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.appsugar.cluster.service.annotation.DynamicService;
 import org.appsugar.cluster.service.annotation.ExecuteDefault;
+import org.appsugar.cluster.service.annotation.ExecuteOnClose;
 import org.appsugar.cluster.service.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
 import org.appsugar.cluster.service.annotation.ExecuteRepeat;
@@ -280,5 +281,27 @@ public class RPCSystemUtil {
 		}
 
 		return ((ServiceInvokeHandler) handler).getName();
+	}
+
+	/**
+	 * 获取初始化调用方法
+	 */
+	public static final List<MethodInvoker> getCloseInvoker(Map<Class<?>, ?> serves) {
+		return serves.entrySet().stream()
+				.flatMap(e -> getCloseMethod(e.getValue()).stream().map(m -> new MethodInvoker(m, e.getValue(), true)))
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * 查找该类中注解为ExecuteDefault无参数的方法
+	 */
+	public static final List<Method> getCloseMethod(Object target) {
+		Class<?> clazz = target.getClass();
+		if (target instanceof ProxyServer) {
+			clazz = ((ProxyServer) target).getTargetClass();
+		}
+		return Arrays.asList(clazz.getMethods()).stream()
+				.filter(m -> m.isAnnotationPresent(ExecuteOnClose.class) && m.getParameterCount() == 0)
+				.collect(Collectors.toList());
 	}
 }
