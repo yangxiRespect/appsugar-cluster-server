@@ -8,11 +8,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 import org.appsugar.cluster.service.akka.domain.ActorClusterShareMessage;
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
+import org.appsugar.cluster.service.akka.domain.FocusMessage;
 import org.appsugar.cluster.service.akka.domain.LocalShareMessage;
+import org.appsugar.cluster.service.akka.util.DynamicServiceUtils;
+import org.appsugar.cluster.service.api.Focusable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,21 +37,29 @@ import akka.cluster.Member;
  * @author NewYoung
  * 2016年5月27日下午4:31:49
  */
-public class ActorShareCenter implements ClusterMemberListener, ActorShareListener {
+public class ActorShareCenter implements ClusterMemberListener, ActorShareListener, Focusable {
 
 	public static final String ACTOR_SHARE_COLLECTOR_NAME = "cluster_share";
 	public static final String ACTOR_SHARE_COLLECTOR_PATH = "/user/" + ACTOR_SHARE_COLLECTOR_NAME;
 	private static final Logger logger = LoggerFactory.getLogger(ActorShareCenter.class);
 
 	private Set<Member> members = new HashSet<>();
-	private Map<Address, List<ActorShare>> remoteActorRef = new HashMap<>();
+	private Map<Address, MemberInformation> remoteActorRef = new HashMap<>();
 	private List<ActorShare> localActorRefList = new ArrayList<>();
 	private ActorSystem system;
 	private ActorRef shareCollectorRef;
 	private ActorShareListener actorShareListener;
 
+	/**普通关注列表**/
+	private Set<String> normalFocus = ConcurrentHashMap.newKeySet();
+	/**动态关注列表**/
+	private Set<String> dynamicFocus = ConcurrentHashMap.newKeySet();
+	/**特殊关注列表**/
+	private Set<String> specialFocus = ConcurrentHashMap.newKeySet();
+
 	public ActorShareCenter(ActorSystem system, ActorShareListener actorShareListener) {
 		super();
+
 		this.system = system;
 		this.actorShareListener = actorShareListener;
 		shareCollectorRef = system.actorOf(Props.create(ActorShareCollector.class, this, this),
@@ -85,58 +98,32 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			actorShareListener.handle(actors, status);
 		} finally {
 			ActorShare actorShare = actors.get(0);
-			//如果是本地actor服务(本地服务一次只会有一个)
-			if (actorShare.getActorRef().path().address().hasLocalScope()) {
-				if (ClusterStatus.UP.equals(status)) {
-					localActorRefList.addAll(actors);
-				} else {
-					localActorRefList.removeAll(actors);
-				}
-				if (actorShare.isLocal()) {
-					return;
-				}
-				//告诉所有member,本地actorref 有改变了 
-				members.stream()
-						.forEach(m -> system.actorSelection(m.address() + ACTOR_SHARE_COLLECTOR_PATH).tell(
-								new ActorClusterShareMessage(status, new ActorShare(actorShare.getName())),
-								actorShare.getActorRef()));
-			} else {
-				List<ActorShare> remoteActorList = getAndCreateShareActorCollection(
-						actorShare.getActorRef().path().address());
-				if (ClusterStatus.UP.equals(status)) {
-					remoteActorList.add(actorShare);
-				} else {
-					remoteActorList.remove(actorShare);
-				}
-			}
+			processActorShare(actorShare, status);
 		}
 	}
 
 	@Override
 	public void handle(Member m, ClusterStatus state) {
-		ActorSelection as = system.actorSelection(m.address() + ACTOR_SHARE_COLLECTOR_PATH);
-		if (as.anchorPath().address().hasLocalScope()) {
-			logger.debug("self member event  do nothing");
+		Address address = m.address();
+		if (address.hasLocalScope()) {
 			return;
 		}
 		logger.info("member event status {} member {}", state, m);
 		if (ClusterStatus.UP.equals(state)) {
 			members.add(m);
-			getAndCreateShareActorCollection(m.address());
-			if (localActorRefList.isEmpty()) {
-				return;
-			}
-			logger.debug("send local share actor to member {}  actor address {}", m.address(),
-					as.anchorPath().address());
-			//把本地所有非局部共享actor发送给对应节点
-			localActorRefList.stream().filter(e -> !e.isLocal())
-					.forEach(l -> as.tell(new ActorClusterShareMessage(ClusterStatus.UP, new ActorShare(l.getName())),
-							l.getActorRef()));
+			getAndCreateShareActorCollection(address);
+			ActorSelection as = remoteShareActorSelection(address);
+			normalFocus.stream().forEach(e -> as.tell(new FocusMessage(e), shareCollectorRef));
+			specialFocus.stream().forEach(e -> as.tell(new FocusMessage(e, true), shareCollectorRef));
 		} else {
 			members.remove(m);
-			List<ActorShare> actorShareList = remoteActorRef.remove(m.address());
+			MemberInformation inf = remoteActorRef.remove(address);
+			if (Objects.isNull(inf)) {
+				return;
+			}
+			List<ActorShare> actorShareList = inf.getShareActorList();
 			//有可能接收到unreachable 和 memberRemove事件,导致空指针异常
-			if (Objects.isNull(actorShareList) || actorShareList.isEmpty()) {
+			if (actorShareList.isEmpty()) {
 				return;
 			}
 			//该服务节点被移除,对应的actor共享服务也应该被移除
@@ -146,15 +133,160 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	}
 
 	protected List<ActorShare> getAndCreateShareActorCollection(Address address) {
-		List<ActorShare> actorShareList = remoteActorRef.get(address);
-		if (actorShareList == null) {
-			actorShareList = new ArrayList<>();
-			remoteActorRef.put(address, actorShareList);
+		return information(address).getShareActorList();
+	}
+
+	protected MemberInformation information(Address address) {
+		MemberInformation information = remoteActorRef.get(address);
+		if (Objects.isNull(information)) {
+			information = new MemberInformation();
+			remoteActorRef.put(address, information);
 		}
-		return actorShareList;
+		return information;
 	}
 
 	public Set<Member> members() {
 		return members;
 	}
+
+	@Override
+	public void focusNormalService(String name) {
+		if (!normalFocus.add(name)) {
+			return;
+		}
+		logger.debug("focus  service {}", name);
+		FocusMessage focusMessage = new FocusMessage(name, false);
+		//通知所有节点我关注这个服务
+		remoteActorRef.entrySet().stream().forEach(e -> notifyFocusMessage(e.getKey(), focusMessage));
+	}
+
+	@Override
+	public void focusDynamicService(String name, String sequence) {
+		String realName = DynamicServiceUtils.getDynamicServiceNameWithSequence(name, sequence);
+		if (!dynamicFocus.add(realName)) {
+			return;
+		}
+		logger.debug("focus dynamic service {}", realName);
+		FocusMessage focusMessage = new FocusMessage(name, false);
+		//通知服务名为name的所有节点. 我关注这个动态服务
+		remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOn(name))
+				.forEach(e -> notifyFocusMessage(e.getKey(), focusMessage));
+	}
+
+	@Override
+	public void focusSpecial(String name) {
+		if (!specialFocus.add(name)) {
+			return;
+		}
+		logger.debug("focus  special  service {}", name);
+		FocusMessage focusMessage = new FocusMessage(name, true);
+		//通知服务名为name的所有节点. 我关注所有name开头的动态服务
+		remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOn(name))
+				.forEach(e -> notifyFocusMessage(e.getKey(), focusMessage));
+	}
+
+	/**
+	 * 处理共享actor
+	 * @author NewYoung
+	 * 2017年5月11日下午5:18:16
+	 */
+	void processActorShare(ActorShare actorShare, ClusterStatus status) {
+		String name = actorShare.getName();
+		ActorRef ref = actorShare.getActorRef();
+		Address address = ref.path().address();
+		//如果是本地actor服务(本地服务一次只会有一个)
+		if (address.hasLocalScope()) {
+			if (ClusterStatus.UP.equals(status)) {
+				localActorRefList.add(actorShare);
+			} else {
+				localActorRefList.remove(actorShare);
+			}
+			if (actorShare.isLocal()) {
+				return;
+			}
+			ActorClusterShareMessage msg = new ActorClusterShareMessage(status, new ActorShare(actorShare.getName()));
+			//通知关注该服务的member,我本地服务有变化啦
+			remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOn(name)).forEach(e -> {
+				ActorSelection as = remoteShareActorSelection(e.getKey());
+				as.tell(msg, ref);
+			});
+			String specialName = DynamicServiceUtils.getDynamicServiceFirstName(name);
+			if (Objects.isNull(specialName)) {
+				return;
+			}
+			//动态服务,告知所有动态服务创建节点
+			remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOnSpecial(specialName)).forEach(e -> {
+				ActorSelection as = remoteShareActorSelection(e.getKey());
+				as.tell(msg, ref);
+			});
+		} else {
+			List<ActorShare> remoteActorList = getAndCreateShareActorCollection(address);
+			if (ClusterStatus.UP.equals(status)) {
+				remoteActorList.add(actorShare);
+				if (!specialFocus.contains(name)) {
+					return;
+				}
+				//告诉当前member,我关注该服务的所有动态服务
+				FocusMessage focusMessage = new FocusMessage(name, true);
+				notifyFocusMessage(address, focusMessage);
+			} else {
+				remoteActorList.remove(actorShare);
+			}
+		}
+	}
+
+	/**
+	 * 通知消息
+	 * @author NewYoung
+	 * 2017年5月11日下午4:29:53
+	 */
+	void notifyFocusMessage(Address address, FocusMessage msg) {
+		ActorSelection as = remoteShareActorSelection(address);
+		as.tell(msg, shareCollectorRef);
+	}
+
+	ActorSelection remoteShareActorSelection(Address address) {
+		return system.actorSelection(address + ACTOR_SHARE_COLLECTOR_PATH);
+	}
+
+	/**
+	 * 节点关注服务处理
+	 * @author NewYoung
+	 * 2017年5月11日下午4:30:12
+	 */
+	@Override
+	public void memberFocus(ActorRef actor, FocusMessage msg) {
+		Address address = actor.path().address();
+		logger.debug("memeber {}  focus message   {}", address, msg);
+		MemberInformation inf = information(address);
+		String name = msg.getName();
+		Predicate<ActorShare> p = null;
+		if (!msg.isWatchDynamic()) {
+			inf.getFocusSet().add(name);
+			p = a -> Objects.equals(a.getName(), name) && !a.isLocal();
+		} else {
+			inf.getFocusSpecialSet().add(name);
+			p = a -> DynamicServiceUtils.isDynamicServiceAs(name, a.getName());
+		}
+		ActorSelection as = remoteShareActorSelection(address);
+		//把当前所有该节点关注的name服务告诉给对方
+		localActorRefList.stream().filter(p).forEach(e -> as
+				.tell(new ActorClusterShareMessage(ClusterStatus.UP, new ActorShare(e.getName())), e.getActorRef()));
+	}
+
+	@Override
+	public Set<String> normalFocus() {
+		return normalFocus;
+	}
+
+	@Override
+	public Set<String> dynamicFocus() {
+		return dynamicFocus;
+	}
+
+	@Override
+	public Set<String> specialFocus() {
+		return specialFocus;
+	}
+
 }

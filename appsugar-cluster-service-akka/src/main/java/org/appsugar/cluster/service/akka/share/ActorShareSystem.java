@@ -69,4 +69,8 @@ public class ActorShareSystem {
 	public Set<Member> members() {
 		return Collections.unmodifiableSet(shareCenter.members());
 	}
+
+	public ActorShareCenter actorShareCenter() {
+		return shareCenter;
+	}
 }

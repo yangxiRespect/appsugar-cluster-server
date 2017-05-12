@@ -212,4 +212,34 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 			}
 		}
 	}
+
+	@Override
+	public void focusNormalService(String name) {
+		actorShareSystem.actorShareCenter().focusNormalService(name);
+	}
+
+	@Override
+	public void focusDynamicService(String name, String sequence) {
+		actorShareSystem.actorShareCenter().focusDynamicService(name, sequence);
+	}
+
+	@Override
+	public void focusSpecial(String name) {
+		actorShareSystem.actorShareCenter().focusSpecial(name);
+	}
+
+	@Override
+	public Set<String> normalFocus() {
+		return actorShareSystem.actorShareCenter().normalFocus();
+	}
+
+	@Override
+	public Set<String> dynamicFocus() {
+		return actorShareSystem.actorShareCenter().dynamicFocus();
+	}
+
+	@Override
+	public Set<String> specialFocus() {
+		return actorShareSystem.actorShareCenter().specialFocus();
+	}
 }

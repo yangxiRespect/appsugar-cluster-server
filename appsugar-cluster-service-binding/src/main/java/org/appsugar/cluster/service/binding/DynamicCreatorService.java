@@ -65,9 +65,13 @@ public class DynamicCreatorService implements Service {
 		} else if (msg instanceof ServiceStatusMessage) {
 			handleServiceStatusMessage((ServiceStatusMessage) msg);
 		} else if (msg instanceof CommandMessage) {
-			if (Objects.equals(CommandMessage.CLOSE_COMMAND, ((CommandMessage) msg).cmd)) {
+			CommandMessage cmd = (CommandMessage) msg;
+			if (Objects.equals(CommandMessage.CLOSE_COMMAND, cmd.getCmd())) {
 				logger.info("prepar to stop self manully self {}    sender {}", context.self(), context.sender());
 				context.system().stop(context.self());
+			} else if (Objects.equals(CommandMessage.QUERY_DYNAMIC_SERVICE_COMMAND, cmd.getCmd())) {
+				String sequence = cmd.getCmd();
+				return createdServices.contains(sequence);
 			}
 		}
 		return null;
@@ -102,6 +106,11 @@ public class DynamicCreatorService implements Service {
 	protected CompletableFuture<Void> handleDynamicServiceCreateMessage(DynamicServiceCreateMessage msg)
 			throws Exception {
 		String sequence = msg.getSequence();
+		String expectedServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence);
+		ServiceClusterRef expectedServiceClusterRef = system.serviceOf(expectedServiceName);
+		if (Objects.nonNull(expectedServiceClusterRef) && expectedServiceClusterRef.size() != 0) {
+			return CompletableFuture.completedFuture(null);
+		}
 		//异步创建出服务者
 		return CompletableFutureUtil.wrapContextFuture(factory.create(msg.getSequence()).thenCompose(
 				r -> rpcSystem.serviceForAsync(r, RPCSystemUtil.getDynamicServiceNameWithSequence(name, sequence))));

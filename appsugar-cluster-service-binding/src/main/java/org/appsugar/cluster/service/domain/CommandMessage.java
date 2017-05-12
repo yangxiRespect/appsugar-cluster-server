@@ -8,7 +8,10 @@ package org.appsugar.cluster.service.domain;
 public class CommandMessage {
 	/**关闭事件**/
 	public static final String CLOSE_COMMAND = "CLOSE";
-	public String cmd;
+	public static final String QUERY_DYNAMIC_SERVICE_COMMAND = "QUERY_DYNAMIC_SERVICE";
+	public static final CommandMessage CLOSE = new CommandMessage(CLOSE_COMMAND);
+	private String cmd;
+	private String param;
 
 	public CommandMessage() {
 		super();
@@ -19,14 +22,24 @@ public class CommandMessage {
 		this.cmd = cmd;
 	}
 
+	public CommandMessage(String cmd, String param) {
+		super();
+		this.cmd = cmd;
+		this.param = param;
+	}
+
 	public String getCmd() {
 		return cmd;
+	}
+
+	public String getParam() {
+		return param;
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("CommandMessage [cmd=").append(cmd).append("]");
+		builder.append("CommandMessage [cmd=").append(cmd).append(", param=").append(param).append("]");
 		return builder.toString();
 	}
 

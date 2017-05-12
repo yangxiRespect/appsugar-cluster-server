@@ -48,14 +48,14 @@ public class DistributionRPCSystemTest extends TestCase {
 				new AkkaServiceClusterSystem("a", ConfigFactory.load()));
 		system.registerFactory(new ProductOperationServiceServiceFactory());
 		String sequence = "1";
-		ProductOperationService p = system.serviceOfDynamic(ProductOperationService.class, sequence);
+		ProductOperationService p = system.serviceOfDynamic(ProductOperationService.class, sequence).get();
 		System.out.println(" id is " + p.id());
-		Assert.assertEquals(p, system.serviceOfDynamic(ProductOperationService.class, sequence));
+		Assert.assertEquals(p, system.serviceOfDynamic(ProductOperationService.class, sequence).get());
 		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence("productCreate", sequence);
-		Assert.assertNotNull(system.serviceOfDynamicIfPresent(ProductOperationService.class, sequence));
+		Assert.assertNotNull(system.serviceOfDynamic(ProductOperationService.class, sequence));
 		system.stop(dynamicServiceName);
 		Thread.sleep(2000);
-		Assert.assertNull(system.serviceOfDynamicIfPresent(ProductOperationService.class, sequence));
+		Assert.assertNull(system.serviceOfDynamicIfPresent(ProductOperationService.class, sequence).get());
 		system.terminate();
 	}
 

@@ -46,6 +46,7 @@ public class ActorShareSystemTest extends TestCase {
 			ActorRef ref1 = system.actorOf(Props.create(TestActor.class), "xx1");
 			shareSystem.share(ref, "bbq").get();
 			shareSystem.share(ref1, "bbq").get();
+			System.out.println("===================share===================");
 			systemSets.add(system);
 		}
 		Thread.sleep(6000);

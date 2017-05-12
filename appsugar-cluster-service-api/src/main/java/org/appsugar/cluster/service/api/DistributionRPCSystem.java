@@ -13,6 +13,26 @@ import org.appsugar.cluster.service.domain.ServiceDescriptor;
 public interface DistributionRPCSystem {
 
 	/**
+	 * 设置系统需要服务.
+	 * <pre>
+	 * 		使用服务前需先声明.
+	 * 		使用动态服务前需先声明
+	 * 		系统把所需服务告知其他节点,并获取服务引用.
+	 * </pre>
+	 * @author NewYoung
+	 * 2017年5月12日下午1:15:39
+	 */
+	void require(String name);
+
+	/**
+	 * 设置系统需要服务
+	 * {@link this#require(String)}
+	 * @author NewYoung
+	 * 2017年5月12日下午1:34:38
+	 */
+	void require(Class<?> clazz);
+
+	/**
 	 * 判断该服务是否存在于集群中
 	 * @author NewYoung
 	 * 2017年5月5日下午4:03:29
@@ -27,32 +47,29 @@ public interface DistributionRPCSystem {
 	boolean existLocally(String name);
 
 	/**
-	 *根据接口类获取对应操作对象 
+	 * 根据接口类获取对应操作对象
+	 * @see this{@link #require(Class)}
 	 */
 	<T> T serviceOf(Class<T> ic);
 
 	/**
-	 * 根据接口类获取操作对象 ,如果服务不存在,返回null
+	 * 查找动态服务是否存在
+	 * @author NewYoung
+	 * 2017年5月12日下午2:24:15
 	 */
-	<T> T serviceOfIfPresent(Class<T> ic);
-
-	/**
-	 * 获取动态服务操作对象
-	 * 如果不存在,那么返回null
-	 */
-	<T> T serviceOfDynamicIfPresent(Class<T> ic, String sequence);
+	<T> CompletableFuture<T> serviceOfDynamicIfPresent(Class<T> ic, String sequence);
 
 	/**
 	 * 获取动态服务操作对象
 	 * 如果服务不存在,会请求对应动态服务创建工厂创建对应服务(服务可能创建在任意节点中)
 	 */
-	<T> T serviceOfDynamic(Class<T> ic, String sequence);
+	<T> CompletableFuture<T> serviceOfDynamic(Class<T> ic, String sequence);
 
 	/**
 	 * 获取动态服务操作对象
 	 * 如果服务不存在,会请求本地创建对应动态服务(服务只在当前jvm中创建)
 	 */
-	<T> T serviceOfDynamicLocally(Class<T> ic, String sequence);
+	<T> CompletableFuture<T> serviceOfDynamicLocally(Class<T> ic, String sequence);
 
 	/**
 	 * 创建指定服务

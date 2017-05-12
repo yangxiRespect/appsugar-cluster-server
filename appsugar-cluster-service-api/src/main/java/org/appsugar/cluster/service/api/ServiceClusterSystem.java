@@ -8,7 +8,7 @@ import java.util.concurrent.CompletableFuture;
  * @author NewYoung
  * 2016年5月23日下午1:58:53
  */
-public interface ServiceClusterSystem extends SubPubClusterSystem {
+public interface ServiceClusterSystem extends SubPubClusterSystem, Focusable {
 
 	/**
 	 * serviceFor(service,name,flase);

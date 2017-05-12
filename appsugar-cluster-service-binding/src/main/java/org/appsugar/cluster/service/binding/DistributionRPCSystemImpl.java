@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Function;
 
+import org.appsugar.cluster.service.akka.util.DynamicServiceUtils;
+import org.appsugar.cluster.service.annotation.DynamicService;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
 import org.appsugar.cluster.service.api.Service;
@@ -46,7 +48,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	private Map<String, Map<Class<?>, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
 	/**本地服务引用**/
 	protected Map<String, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
+	/**服务数**/
 	protected Map<String, Integer> serviceStatus = new ConcurrentHashMap<>();
+	/**询问过的动态服务**/
+	protected Set<String> askedDynamicService = ConcurrentHashMap.newKeySet();
 
 	public DistributionRPCSystemImpl(ServiceClusterSystem system) {
 		super();
@@ -74,19 +79,44 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		if (proxyCache.containsKey(ic)) {
 			return (T) proxyCache.get(ic);
 		}
-		T result = createService(ic, RPCSystemUtil.getServiceName(ic));
+		String name = RPCSystemUtil.getServiceName(ic);
+		//告知系统,我对该服务感兴趣.
+		require(name);
+		T result = createService(ic, name);
 		proxyCache.put(ic, result);
 		return result;
 	}
 
 	@Override
-	public <T> T serviceOfIfPresent(Class<T> ic) {
-		String serviceName = RPCSystemUtil.getServiceName(ic);
-		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
-		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
-			return null;
+	public <T> CompletableFuture<T> serviceOfDynamicIfPresent(Class<T> ic, String sequence) {
+		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
+		String dynamicServiceName = DynamicServiceUtils.getDynamicServiceNameWithSequence(serviceName, sequence);
+		//如果服务存在,那么直接返回
+		if (exist(dynamicServiceName)) {
+			return serviceOfDynamic(ic, sequence, ServiceClusterRef::leader, false);
 		}
-		return serviceOf(ic);
+		//如果服务不存在,又主动询问过该服务.那么直接返回
+		if (askedDynamicService.contains(dynamicServiceName)) {
+			return CompletableFuture.completedFuture(null);
+		}
+		//如果创建者不存在,那么直接抛出异常
+		if (!exist(serviceName)) {
+			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
+		}
+		//标注我所关注该动态服务
+		system.focusDynamicService(serviceName, sequence);
+		//寻求服务提供方查找对应动态服务
+		return system.serviceOf(serviceName).leader()
+				.ask(new CommandMessage(CommandMessage.QUERY_DYNAMIC_SERVICE_COMMAND, sequence))
+				.whenComplete((r, e) -> askedDynamicService.add(dynamicServiceName)).thenApply(e -> {
+					if (!Objects.equals(Boolean.TRUE, e)) {
+						return null;
+					}
+					Map<Class<?>, Object> serviceProxyCache = getDynamicServiceCache(dynamicServiceName);
+					T service = createService(ic, dynamicServiceName);
+					serviceProxyCache.put(ic, service);
+					return service;
+				});
 	}
 
 	/**
@@ -94,52 +124,46 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	 * 动态服务不可缓存RPC对象.
 	 */
 	@Override
-	public <T> T serviceOfDynamic(Class<T> ic, String sequence) {
+	public <T> CompletableFuture<T> serviceOfDynamic(Class<T> ic, String sequence) {
 		return serviceOfDynamic(ic, sequence, ServiceClusterRef::leader, false);
 	}
 
 	@Override
-	public <T> T serviceOfDynamicLocally(Class<T> ic, String sequence) {
+	public <T> CompletableFuture<T> serviceOfDynamicLocally(Class<T> ic, String sequence) {
 		return serviceOfDynamic(ic, sequence, RPCSystemUtil::getLocalServiceRef, true);
 	}
 
-	public <T> T serviceOfDynamic(Class<T> ic, String sequence, Function<ServiceClusterRef, ServiceRef> masterFunction,
-			boolean location) {
+	@SuppressWarnings("unchecked")
+	public <T> CompletableFuture<T> serviceOfDynamic(Class<T> ic, String sequence,
+			Function<ServiceClusterRef, ServiceRef> masterFunction, boolean location) {
 		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
 		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
-		Map<Class<?>, Object> serviceProxyCache = dynamicProxyCache.get(dynamicServiceName);
-		if (serviceProxyCache == null) {
-			serviceProxyCache = new ConcurrentHashMap<>();
-			dynamicProxyCache.put(dynamicServiceName, serviceProxyCache);
-		}
+		Map<Class<?>, Object> serviceProxyCache = getDynamicServiceCache(dynamicServiceName);
 		T instance = (T) serviceProxyCache.get(ic);
 		if (instance != null) {
-			return instance;
+			return CompletableFuture.completedFuture(instance);
 		}
-		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
-		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
+		if (exist(dynamicServiceName)) {
+			instance = createService(ic, dynamicServiceName);
+			serviceProxyCache.put(ic, instance);
+			return CompletableFuture.completedFuture(instance);
+		}
+		//通知系统关注动态服务
+		system.focusDynamicService(serviceName, sequence);
+		if (!exist(serviceName)) {
 			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
 		}
-		ServiceRef ref = masterFunction.apply(clusterRef);
-		CompletableFutureUtil.getSilently(ref.ask(new DynamicServiceRequest(sequence, location)));
-		instance = (T) serviceProxyCache.get(ic);
-		if (instance != null) {
-			return instance;
-		}
-		instance = createService(ic, dynamicServiceName);
-		serviceProxyCache.put(ic, instance);
-		return instance;
-	}
-
-	@Override
-	public <T> T serviceOfDynamicIfPresent(Class<T> ic, String sequence) {
-		String serviceName = RPCSystemUtil.getDynamicServiceName(ic);
-		String dynamicServiceName = RPCSystemUtil.getDynamicServiceNameWithSequence(serviceName, sequence);
-		ServiceClusterRef clusterRef = system.serviceOf(dynamicServiceName);
-		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
-			return null;
-		}
-		return serviceOfDynamic(ic, sequence);
+		Map<Class<?>, Object> finalServiceProxyCache = serviceProxyCache;
+		ServiceRef ref = masterFunction.apply(system.serviceOf(serviceName));
+		return ref.ask(new DynamicServiceRequest(sequence, location)).thenApply(e -> {
+			T result = (T) finalServiceProxyCache.get(ic);
+			if (result != null) {
+				return result;
+			}
+			result = createService(ic, dynamicServiceName);
+			finalServiceProxyCache.put(ic, result);
+			return result;
+		});
 	}
 
 	@Override
@@ -233,6 +257,8 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		ServiceRef serviceRef = system.serviceFor(service, name, factory.local());
 		serviceRefs.put(serviceRef.name(), serviceRef);
 		factory.init(this);
+		system.focusNormalService(name);
+		system.focusSpecial(name);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -257,7 +283,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	@Override
 	public boolean exist(String name) {
 		ServiceClusterRef clusterRef = system.serviceOf(name);
-		return Objects.nonNull(clusterRef) && clusterRef.size() != 0;
+		if (Objects.nonNull(clusterRef) && clusterRef.size() != 0) {
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -266,4 +295,33 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		return Objects.nonNull(clusterRef) && Objects.nonNull(RPCSystemUtil.getLocalServiceRef(clusterRef));
 	}
 
+	@Override
+	public void require(String name) {
+		system.focusNormalService(name);
+	}
+
+	@Override
+	public void require(Class<?> clazz) {
+		org.appsugar.cluster.service.annotation.Service s = clazz
+				.getAnnotation(org.appsugar.cluster.service.annotation.Service.class);
+		DynamicService ds = clazz.getAnnotation(DynamicService.class);
+		if (Objects.nonNull(s)) {
+			require(s.value());
+		} else if (Objects.nonNull(ds)) {
+			require(ds.value());
+		} else {
+			throw new RuntimeException("class" + clazz + " is a not annotated service "
+					+ org.appsugar.cluster.service.annotation.Service.class + " or dynamic service "
+					+ DynamicService.class);
+		}
+	}
+
+	Map<Class<?>, Object> getDynamicServiceCache(String dynamicServiceName) {
+		Map<Class<?>, Object> serviceProxyCache = dynamicProxyCache.get(dynamicServiceName);
+		if (serviceProxyCache == null) {
+			serviceProxyCache = new ConcurrentHashMap<>();
+			dynamicProxyCache.putIfAbsent(dynamicServiceName, serviceProxyCache);
+		}
+		return serviceProxyCache;
+	}
 }

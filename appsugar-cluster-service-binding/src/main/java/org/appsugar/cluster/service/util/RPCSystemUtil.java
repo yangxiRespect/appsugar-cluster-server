@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.appsugar.cluster.service.akka.util.DynamicServiceUtils;
 import org.appsugar.cluster.service.annotation.DynamicService;
 import org.appsugar.cluster.service.annotation.ExecuteDefault;
 import org.appsugar.cluster.service.annotation.ExecuteOnClose;
@@ -225,7 +226,7 @@ public class RPCSystemUtil {
 	 * 根据sequence获取动态服务名称
 	 */
 	public static final String getDynamicServiceNameWithSequence(String name, String sequence) {
-		return name + "/" + sequence;
+		return DynamicServiceUtils.getDynamicServiceNameWithSequence(name, sequence);
 	}
 
 	/**
@@ -234,14 +235,7 @@ public class RPCSystemUtil {
 	 * 2017年3月23日下午4:41:31
 	 */
 	public static final String getDynamicServiceSequenceByName(String name, String serviceName) {
-		if (!serviceName.startsWith(name)) {
-			return null;
-		}
-		int theLastSeparateIndex = serviceName.lastIndexOf(name + "/");
-		if (theLastSeparateIndex == -1) {
-			return null;
-		}
-		return serviceName.substring(theLastSeparateIndex + 1);
+		return DynamicServiceUtils.getDynamicServiceSequenceByName(name, serviceName);
 	}
 
 	/**

@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import org.appsugar.cluster.service.akka.domain.ActorClusterShareMessage;
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
+import org.appsugar.cluster.service.akka.domain.FocusMessage;
 import org.appsugar.cluster.service.akka.domain.LocalShareMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +99,12 @@ public class ActorShareCollector extends AbstractActor {
 					ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;
 					shareMessage.getShare().setActorRef(sender());
 					actorShareListener.handle(Arrays.asList(shareMessage.getShare()), shareMessage.getStatus());
-				} //处理本地共享消息
+				}
+				//处理服务关注消息
+				else if (msg instanceof FocusMessage) {
+					actorShareListener.memberFocus(sender(), (FocusMessage) msg);
+				}
+				//处理本地共享消息
 				else if (msg instanceof LocalShareMessage) {
 					processLocalShareMessage((LocalShareMessage) msg);
 				} //处理本地共享actor关闭事件
@@ -122,7 +128,7 @@ public class ActorShareCollector extends AbstractActor {
 	/**
 	 * 处理来自本地共享请求
 	 */
-	private void processLocalShareMessage(LocalShareMessage msg) {
+	void processLocalShareMessage(LocalShareMessage msg) {
 		CompletableFuture<Void> future = msg.getFuture();
 		ActorRef ref = msg.getRef();
 		if (watchList.contains(ref)) {

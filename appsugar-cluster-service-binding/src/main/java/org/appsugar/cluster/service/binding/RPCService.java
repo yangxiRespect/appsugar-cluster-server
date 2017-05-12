@@ -192,7 +192,7 @@ public class RPCService implements Service {
 	 * 2017年5月10日上午10:13:47
 	 */
 	protected Object processCommandMessage(CommandMessage commandMessage, ServiceContext context) {
-		if (Objects.equals(CommandMessage.CLOSE_COMMAND, commandMessage.cmd)) {
+		if (Objects.equals(CommandMessage.CLOSE_COMMAND, commandMessage.getCmd())) {
 			logger.info("prepar to stop self manully self {}    sender {}", context.self(), context.sender());
 			context.system().stop(context.self());
 			stopped = true;
@@ -218,6 +218,8 @@ public class RPCService implements Service {
 		methodInvokerMap = RPCSystemUtil.getClassMethodInvoker(serves);
 		//初始化服务准备方法
 		serviceReadyInvokerMap = RPCSystemUtil.getServiceStatusHelper(serves);
+		//设置我关注的服务
+		serviceReadyInvokerMap.keySet().stream().forEach(this.system::focusNormalService);
 		//初始化事件调用方法
 		eventInvokerMap = RPCSystemUtil.getEventMethodInvoke(serves);
 		eventInvokerMap.keySet().stream().forEach(e -> system.subscribe(e, context.self()));

@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
+import org.appsugar.cluster.service.akka.domain.FocusMessage;
+
+import akka.actor.ActorRef;
 
 /**
  * actor共享消息监听器
@@ -18,5 +21,14 @@ public interface ActorShareListener {
 	 * @param status 状态
 	 */
 	void handle(List<ActorShare> actors, ClusterStatus status);
+
+	/**
+	 * 节点关注消息处理
+	 * @author NewYoung
+	 * 2017年5月11日下午4:31:37
+	 */
+	default void memberFocus(ActorRef actor, FocusMessage msg) {
+		//do nothing
+	}
 
 }
