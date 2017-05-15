@@ -113,13 +113,19 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 			dynamicProxyCache.put(dynamicServiceName, serviceProxyCache);
 		}
 		T instance = (T) serviceProxyCache.get(ic);
-		if (instance != null) {
+		if (Objects.nonNull(instance)) {
 			return instance;
 		}
-		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
-		if (Objects.isNull(clusterRef) || clusterRef.size() == 0) {
+		if (exist(dynamicServiceName)) {
+			instance = createService(ic, dynamicServiceName);
+			serviceProxyCache.put(ic, instance);
+			return instance;
+		}
+		//请求创建动态服务
+		if (!exist(serviceName)) {
 			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
 		}
+		ServiceClusterRef clusterRef = system.serviceOf(serviceName);
 		ServiceRef ref = masterFunction.apply(clusterRef);
 		CompletableFutureUtil.getSilently(ref.ask(new DynamicServiceRequest(sequence, location)));
 		instance = (T) serviceProxyCache.get(ic);
