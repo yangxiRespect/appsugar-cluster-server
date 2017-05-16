@@ -43,7 +43,7 @@ configure(subprojects) { project ->
 		junitVersion = "4.12"
 		slf4jVersion = "1.7.22"
 		logbackVersion = "1.1.8"
-		akkaVersion = "2.5.0"
+		akkaVersion = "2.5.1"
 		fstVersion = "2.48"
 		protostuffVersion = "1.5.3"
 		springVersion = "4.3.5.RELEASE"
