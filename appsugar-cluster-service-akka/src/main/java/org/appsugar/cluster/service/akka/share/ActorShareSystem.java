@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.appsugar.cluster.service.api.StatusListener;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.Member;
@@ -32,12 +34,13 @@ public class ActorShareSystem {
 	 * @param listener 可以为空.
 	 * @return 
 	 */
-	public synchronized static ActorShareSystem getSystem(ActorSystem system, ActorShareListener listener) {
+	public synchronized static ActorShareSystem getSystem(ActorSystem system, ActorShareListener listener,
+			StatusListener<org.appsugar.cluster.service.domain.Member> memberListener) {
 		ActorShareSystem result = systemMap.get(system);
 		if (result != null) {
 			return result;
 		}
-		result = new ActorShareSystem(new ActorShareCenter(system, listener));
+		result = new ActorShareSystem(new ActorShareCenter(system, listener, memberListener));
 		systemMap.put(system, result);
 		system.registerOnTermination(() -> systemMap.remove(system));
 		return result;

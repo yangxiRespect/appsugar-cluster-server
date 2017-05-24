@@ -22,6 +22,8 @@ import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.ServiceStatusListener;
+import org.appsugar.cluster.service.api.StatusListener;
+import org.appsugar.cluster.service.domain.Member;
 import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.domain.SubscribeMessage;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
@@ -43,7 +45,7 @@ import scala.concurrent.duration.Duration;
  * @author NewYoung
  * 2016年5月30日下午2:58:10 
  */
-public class AkkaServiceClusterSystem implements ServiceClusterSystem {
+public class AkkaServiceClusterSystem implements ServiceClusterSystem, StatusListener<Member> {
 	private static final String FOCUS_TOPIC_KEY = "focus_topic";
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
 	private ActorSystem system;
@@ -52,6 +54,8 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	private Map<String, AkkaServiceClusterRef> serviceClusterRefs = new ConcurrentHashMap<>();
 	private Map<ActorRef, AkkaServiceRef> actorRefMapping = new ConcurrentHashMap<>();
 	private Set<ServiceStatusListener> serviceStatusListenerSet = new CopyOnWriteArraySet<>();
+	/**节点状态监听器**/
+	private Set<StatusListener<Member>> memberStatusListenerSet = new CopyOnWriteArraySet<>();
 
 	/**共享actor名称,从0开始.**/
 	private AtomicInteger actorNameGenerator = new AtomicInteger(0);
@@ -65,7 +69,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	public AkkaServiceClusterSystem(String name, Config config) {
 		system = ActorSystem.create(name, config);
 		mediator = DistributedPubSub.get(system).mediator();
-		actorShareSystem = ActorShareSystem.getSystem(system, this::handleActorShare);
+		actorShareSystem = ActorShareSystem.getSystem(system, this::handleActorShare, this);
 	}
 
 	void handleActorShare(List<ActorShare> actorShareList, ClusterStatus s) {
@@ -210,6 +214,23 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 			} catch (Throwable ex) {
 				logger.error("notify service status listener error {}", ex);
 			}
+		}
+	}
+
+	@Override
+	public boolean addMemberStatusListener(StatusListener<Member> listener) {
+		return memberStatusListenerSet.add(listener);
+	}
+
+	@Override
+	public boolean removeMemberStatusListener(StatusListener<Member> listener) {
+		return memberStatusListenerSet.remove(listener);
+	}
+
+	@Override
+	public void handle(Member t, Status status) {
+		for (StatusListener<Member> listener : memberStatusListenerSet) {
+			listener.handle(t, status);
 		}
 	}
 }

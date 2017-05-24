@@ -224,7 +224,6 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 
 	@Override
 	public void terminate() {
-		logger.info("manully shutdown  akka sysetm  stacktrace is ", new RuntimeException());
 		system.terminate();
 		serviceRefs.clear();
 		serviceListeners.clear();

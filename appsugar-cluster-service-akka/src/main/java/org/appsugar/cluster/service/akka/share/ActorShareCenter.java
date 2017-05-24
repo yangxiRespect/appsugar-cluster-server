@@ -13,6 +13,8 @@ import org.appsugar.cluster.service.akka.domain.ActorClusterShareMessage;
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
 import org.appsugar.cluster.service.akka.domain.LocalShareMessage;
+import org.appsugar.cluster.service.api.StatusListener;
+import org.appsugar.cluster.service.domain.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +46,12 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	private ActorSystem system;
 	private ActorRef shareCollectorRef;
 	private ActorShareListener actorShareListener;
+	private StatusListener<org.appsugar.cluster.service.domain.Member> memberListener;
 
-	public ActorShareCenter(ActorSystem system, ActorShareListener actorShareListener) {
+	public ActorShareCenter(ActorSystem system, ActorShareListener actorShareListener,
+			StatusListener<org.appsugar.cluster.service.domain.Member> memberListener) {
 		super();
+		this.memberListener = memberListener;
 		this.system = system;
 		this.actorShareListener = actorShareListener;
 		shareCollectorRef = system.actorOf(Props.create(ActorShareCollector.class, this, this),
@@ -126,6 +131,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			if (localActorRefList.isEmpty()) {
 				return;
 			}
+			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().host().get()),
+					Status.ACTIVE);
 			logger.debug("send local share actor to member {}  actor address {}", m.address(),
 					as.anchorPath().address());
 			//把本地所有非局部共享actor发送给对应节点
@@ -133,7 +140,11 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 					.forEach(l -> as.tell(new ActorClusterShareMessage(ClusterStatus.UP, new ActorShare(l.getName())),
 							l.getActorRef()));
 		} else {
-			members.remove(m);
+			if (!members.remove(m)) {
+				return;
+			}
+			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().host().get()),
+					Status.INACTIVE);
 			List<ActorShare> actorShareList = remoteActorRef.remove(m.address());
 			//有可能接收到unreachable 和 memberRemove事件,导致空指针异常
 			if (Objects.isNull(actorShareList) || actorShareList.isEmpty()) {

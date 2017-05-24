@@ -2,6 +2,8 @@ package org.appsugar.cluster.service.api;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.appsugar.cluster.service.domain.Member;
+
 /**
  * 服务集群系统
  * 可注册服务,搜索服务
@@ -67,4 +69,18 @@ public interface ServiceClusterSystem extends SubPubClusterSystem {
 	 * 移除服务状态监听器
 	 */
 	boolean removeServiceStatusListener(ServiceStatusListener listener);
+
+	/**
+	 * 添加节点监听
+	 * @author NewYoung
+	 * 2017年5月24日下午1:38:17
+	 */
+	boolean addMemberStatusListener(StatusListener<Member> listener);
+
+	/**
+	 * 移除节点监听
+	 * @author NewYoung
+	 * 2017年5月24日下午1:38:25
+	 */
+	boolean removeMemberStatusListener(StatusListener<Member> listener);
 }
