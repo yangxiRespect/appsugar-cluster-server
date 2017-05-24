@@ -131,7 +131,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			if (localActorRefList.isEmpty()) {
 				return;
 			}
-			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().host().get()),
+			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().toString()),
 					Status.ACTIVE);
 			logger.debug("send local share actor to member {}  actor address {}", m.address(),
 					as.anchorPath().address());
@@ -143,7 +143,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			if (!members.remove(m)) {
 				return;
 			}
-			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().host().get()),
+			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().toString()),
 					Status.INACTIVE);
 			List<ActorShare> actorShareList = remoteActorRef.remove(m.address());
 			//有可能接收到unreachable 和 memberRemove事件,导致空指针异常
