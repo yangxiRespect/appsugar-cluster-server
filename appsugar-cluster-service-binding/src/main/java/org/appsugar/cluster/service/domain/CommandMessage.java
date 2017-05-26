@@ -8,8 +8,9 @@ package org.appsugar.cluster.service.domain;
 public class CommandMessage {
 	/**关闭事件**/
 	public static final String CLOSE_COMMAND = "CLOSE";
-	public static final String QUERY_DYNAMIC_SERVICE_COMMAND = "QUERY_DYNAMIC_SERVICE";
 	public static final CommandMessage CLOSE = new CommandMessage(CLOSE_COMMAND);
+	/**查询动态服务**/
+	public static final String QUERY_DYNAMIC_SERVICE_COMMAND = "QUERY_DYNAMIC_SERVICE";
 	private String cmd;
 	private String param;
 

@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.akka.share;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.appsugar.cluster.service.akka.domain.ActorClusterShareMessage;
 import org.appsugar.cluster.service.akka.domain.ActorShare;
@@ -288,17 +290,25 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 
 	@Override
 	public Set<String> normalFocus() {
-		return normalFocus;
+		return unmodifySet(normalFocus);
 	}
 
 	@Override
 	public Set<String> dynamicFocus() {
-		return dynamicFocus;
+		return unmodifySet(dynamicFocus);
 	}
 
 	@Override
 	public Set<String> specialFocus() {
-		return specialFocus;
+		return unmodifySet(specialFocus);
 	}
 
+	@Override
+	public Set<String> supplys() {
+		return localActorRefList.stream().map(ActorShare::getName).collect(Collectors.toSet());
+	}
+
+	private <T> Set<T> unmodifySet(Set<T> orignal) {
+		return Collections.unmodifiableSet(orignal);
+	}
 }

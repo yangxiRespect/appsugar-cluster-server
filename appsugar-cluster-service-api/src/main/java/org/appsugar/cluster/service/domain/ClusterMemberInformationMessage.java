@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.domain;
 
+import java.io.Serializable;
 import java.util.Set;
 
 /**
@@ -7,7 +8,8 @@ import java.util.Set;
  * @author NewYoung
  * 2017年5月25日下午2:10:22
  */
-public class ClusterMemberInformationMessage {
+public class ClusterMemberInformationMessage implements Serializable {
+	private static final long serialVersionUID = -3228945895885152306L;
 	/**节点所提供的服务**/
 	private Set<String> supplyServices;
 	/**关注的服务**/

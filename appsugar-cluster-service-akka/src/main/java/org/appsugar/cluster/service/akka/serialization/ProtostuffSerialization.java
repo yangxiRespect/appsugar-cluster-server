@@ -85,6 +85,7 @@ public class ProtostuffSerialization extends JSerializer {
 			int id = mappings.getInt(key);
 			try {
 				Class<?> clazz = Class.forName(key, false, loader);
+				logger.debug("register class {}", clazz);
 				if (clazz.isEnum()) {
 					registry.registerEnum((Class<Enum>) clazz, id);
 				} else if (Map.class.isAssignableFrom(clazz)) {

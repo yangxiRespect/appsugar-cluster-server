@@ -25,6 +25,7 @@ import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.ServiceStatusListener;
 import org.appsugar.cluster.service.domain.ClusterMember;
+import org.appsugar.cluster.service.domain.ClusterMemberInformationMessage;
 import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.domain.SubscribeMessage;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.actor.Props;
@@ -41,7 +43,11 @@ import akka.actor.Scheduler;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.pattern.AskableActorSelection;
+import akka.util.Timeout;
 import scala.Option;
+import scala.compat.java8.FutureConverters;
+import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 /**
@@ -50,7 +56,10 @@ import scala.concurrent.duration.Duration;
  * 2016年5月30日下午2:58:10 
  */
 public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberStatusListener {
+	private static final String MONITOR_ACTOR_NAME = "monitor";
+	private static final String MONITOR_ACTOR_PATH = "/user/" + MONITOR_ACTOR_NAME;
 	private static final String FOCUS_TOPIC_KEY = "focus_topic";
+	private static final String NODE_INFORMATION_INQUIRE_COMMAND = "node_information_inquire";
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
@@ -73,6 +82,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 		system = ActorSystem.create(name, config);
 		mediator = DistributedPubSub.get(system).mediator();
 		actorShareSystem = ActorShareSystem.getSystem(system, this::handleActorShare, this);
+		createMonitorActor();
 	}
 
 	void handleActorShare(List<ActorShare> actorShareList, ClusterStatus s) {
@@ -251,6 +261,11 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 	}
 
 	@Override
+	public Set<String> supplys() {
+		return actorShareSystem.actorShareCenter().supplys();
+	}
+
+	@Override
 	public Set<ClusterMember> members() {
 		return actorShareSystem.members().stream().map(m -> new ClusterMember(m.address().toString()))
 				.collect(Collectors.toSet());
@@ -277,4 +292,27 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 		//dispatcher event
 		memberStatusListenerSet.forEach(e -> e.handle(member, status));
 	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Override
+	public CompletableFuture<ClusterMemberInformationMessage> inquireInformation(String address) {
+		ActorSelection selection = system.actorSelection(address + MONITOR_ACTOR_PATH);
+		AskableActorSelection askSelection = new AskableActorSelection(selection);
+		Future future = askSelection.ask(NODE_INFORMATION_INQUIRE_COMMAND, new Timeout(30, TimeUnit.SECONDS));
+		return (CompletableFuture<ClusterMemberInformationMessage>) FutureConverters.toJava(future);
+	}
+
+	private void createMonitorActor() {
+		MessageProcessorChain chain = new MessageProcessorChain((ctx, msg) -> {
+			Object reply = null;
+			//处理节点数据查询请求
+			if (Objects.equals(msg, NODE_INFORMATION_INQUIRE_COMMAND)) {
+				reply = new ClusterMemberInformationMessage(supplys(), normalFocus(), specialFocus());
+			}
+			ctx.getSender().tell(reply, ctx.getSelf());
+			return null;
+		});
+		system.actorOf(Props.create(ProcessorChainActor.class, chain), MONITOR_ACTOR_NAME);
+	}
+
 }

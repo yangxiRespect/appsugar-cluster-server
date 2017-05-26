@@ -50,4 +50,11 @@ public interface Focusable {
 	 * 2017年5月11日下午2:15:55
 	 */
 	public Set<String> specialFocus();
+
+	/**
+	 * 返回我所提供的所有服务
+	 * @author NewYoung
+	 * 2017年5月26日下午3:37:09
+	 */
+	public Set<String> supplys();
 }
