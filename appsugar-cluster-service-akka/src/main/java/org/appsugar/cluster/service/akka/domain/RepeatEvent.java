@@ -9,4 +9,5 @@ import java.io.Serializable;
  */
 public class RepeatEvent implements Serializable {
 	private static final long serialVersionUID = -7838378721201142389L;
+	public static final RepeatEvent INSTANCE = new RepeatEvent();
 }

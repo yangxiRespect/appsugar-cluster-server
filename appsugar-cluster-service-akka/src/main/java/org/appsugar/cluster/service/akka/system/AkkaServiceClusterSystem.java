@@ -12,16 +12,19 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
 import org.appsugar.cluster.service.akka.share.ActorShareSystem;
 import org.appsugar.cluster.service.api.Cancellable;
+import org.appsugar.cluster.service.api.MemberStatusListener;
 import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.ServiceStatusListener;
+import org.appsugar.cluster.service.domain.ClusterMember;
 import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.domain.SubscribeMessage;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
@@ -32,10 +35,13 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Scheduler;
+import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import scala.Option;
 import scala.concurrent.duration.Duration;
 
 /**
@@ -43,7 +49,7 @@ import scala.concurrent.duration.Duration;
  * @author NewYoung
  * 2016年5月30日下午2:58:10 
  */
-public class AkkaServiceClusterSystem implements ServiceClusterSystem {
+public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberStatusListener {
 	private static final String FOCUS_TOPIC_KEY = "focus_topic";
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
 	private ActorSystem system;
@@ -52,6 +58,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	private Map<String, AkkaServiceClusterRef> serviceClusterRefs = new ConcurrentHashMap<>();
 	private Map<ActorRef, AkkaServiceRef> actorRefMapping = new ConcurrentHashMap<>();
 	private Set<ServiceStatusListener> serviceStatusListenerSet = new CopyOnWriteArraySet<>();
+	private Set<MemberStatusListener> memberStatusListenerSet = new CopyOnWriteArraySet<>();
 
 	/**共享actor名称,从0开始.**/
 	private AtomicInteger actorNameGenerator = new AtomicInteger(0);
@@ -65,7 +72,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	public AkkaServiceClusterSystem(String name, Config config) {
 		system = ActorSystem.create(name, config);
 		mediator = DistributedPubSub.get(system).mediator();
-		actorShareSystem = ActorShareSystem.getSystem(system, this::handleActorShare);
+		actorShareSystem = ActorShareSystem.getSystem(system, this::handleActorShare, this);
 	}
 
 	void handleActorShare(List<ActorShare> actorShareList, ClusterStatus s) {
@@ -241,5 +248,33 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem {
 	@Override
 	public Set<String> specialFocus() {
 		return actorShareSystem.actorShareCenter().specialFocus();
+	}
+
+	@Override
+	public Set<ClusterMember> members() {
+		return actorShareSystem.members().stream().map(m -> new ClusterMember(m.address().toString()))
+				.collect(Collectors.toSet());
+	}
+
+	@Override
+	public ClusterMember leader() {
+		Option<Address> leader = Cluster.get(system).state().leader();
+		return leader.isEmpty() ? null : new ClusterMember(leader.get().toString());
+	}
+
+	@Override
+	public boolean addMemberStatusListener(MemberStatusListener listener) {
+		return memberStatusListenerSet.add(listener);
+	}
+
+	@Override
+	public boolean removeMemberStatusListener(MemberStatusListener listener) {
+		return memberStatusListenerSet.remove(listener);
+	}
+
+	@Override
+	public void handle(ClusterMember member, Status status) {
+		//dispatcher event
+		memberStatusListenerSet.forEach(e -> e.handle(member, status));
 	}
 }

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import org.appsugar.cluster.service.akka.domain.AskPatternEvent;
 import org.appsugar.cluster.service.akka.domain.AskPatternException;
@@ -16,6 +17,7 @@ import org.appsugar.cluster.service.akka.domain.AskPatternResponse;
 import org.appsugar.cluster.service.akka.domain.RepeatEvent;
 import org.appsugar.cluster.service.akka.domain.RequestMarker;
 import org.appsugar.cluster.service.domain.ServiceException;
+import org.appsugar.cluster.service.util.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +35,9 @@ import scala.concurrent.duration.Duration;
 public class AskPatternMessageProcessor implements MessageProcessor {
 
 	private static final Logger logger = LoggerFactory.getLogger(AskPatternMessageProcessor.class);
-	private static final RepeatEvent repeatEvent = new RepeatEvent();
+	private static final RepeatEvent repeatEvent = RepeatEvent.INSTANCE;
 	private static final int repeatEventIdleMaxTimes = 10;
+	private static final Supplier<List<RequestMarker<?>>> supplier = LinkedList::new;
 	private Map<ActorRef, List<RequestMarker<?>>> refMarkerMap = new HashMap<>();
 	private Integer requestSequence = 0;
 	private Integer waitingCount = 0;
@@ -236,12 +239,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	}
 
 	private List<RequestMarker<?>> getRequestMarkerList(ActorRef ref) {
-		List<RequestMarker<?>> markerList = refMarkerMap.get(ref);
-		if (markerList == null) {
-			markerList = new LinkedList<>();
-			refMarkerMap.put(ref, markerList);
-		}
-		return markerList;
+		return MapUtils.getOrCreate(refMarkerMap, ref, supplier);
 	}
 
 	private int increaseWaiting() {

@@ -1,6 +1,9 @@
 package org.appsugar.cluster.service.api;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import org.appsugar.cluster.service.domain.ClusterMember;
 
 /**
  * 服务集群系统
@@ -9,6 +12,20 @@ import java.util.concurrent.CompletableFuture;
  * 2016年5月23日下午1:58:53
  */
 public interface ServiceClusterSystem extends SubPubClusterSystem, Focusable {
+
+	/**
+	 * 获取所有节点
+	 * @author NewYoung
+	 * 2017年5月25日下午2:07:35
+	 */
+	Set<ClusterMember> members();
+
+	/**
+	 * 获取leader
+	 * @author NewYoung
+	 * 2017年5月25日下午2:07:56
+	 */
+	ClusterMember leader();
 
 	/**
 	 * serviceFor(service,name,flase);
@@ -67,4 +84,14 @@ public interface ServiceClusterSystem extends SubPubClusterSystem, Focusable {
 	 * 移除服务状态监听器
 	 */
 	boolean removeServiceStatusListener(ServiceStatusListener listener);
+
+	/**
+	 * 添加节点状态监听器
+	 */
+	boolean addMemberStatusListener(MemberStatusListener listener);
+
+	/**
+	 * 移除节点状态监听器
+	 */
+	boolean removeMemberStatusListener(MemberStatusListener listener);
 }

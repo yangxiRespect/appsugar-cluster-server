@@ -18,6 +18,9 @@ import org.appsugar.cluster.service.akka.domain.FocusMessage;
 import org.appsugar.cluster.service.akka.domain.LocalShareMessage;
 import org.appsugar.cluster.service.akka.util.DynamicServiceUtils;
 import org.appsugar.cluster.service.api.Focusable;
+import org.appsugar.cluster.service.api.MemberStatusListener;
+import org.appsugar.cluster.service.domain.ClusterMember;
+import org.appsugar.cluster.service.domain.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +52,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	private ActorSystem system;
 	private ActorRef shareCollectorRef;
 	private ActorShareListener actorShareListener;
-
+	/**节点监听器**/
+	private MemberStatusListener memberStatusListener;
 	/**普通关注列表**/
 	private Set<String> normalFocus = ConcurrentHashMap.newKeySet();
 	/**动态关注列表**/
@@ -57,9 +61,10 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	/**特殊关注列表**/
 	private Set<String> specialFocus = ConcurrentHashMap.newKeySet();
 
-	public ActorShareCenter(ActorSystem system, ActorShareListener actorShareListener) {
+	public ActorShareCenter(ActorSystem system, ActorShareListener actorShareListener,
+			MemberStatusListener memberStatusListener) {
 		super();
-
+		this.memberStatusListener = memberStatusListener;
 		this.system = system;
 		this.actorShareListener = actorShareListener;
 		shareCollectorRef = system.actorOf(Props.create(ActorShareCollector.class, this, this),
@@ -109,6 +114,9 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			return;
 		}
 		logger.info("member event status {} member {}", state, m);
+		//派发服务状态消息(不适用当前actor线程执行,防止block)
+		system.dispatcher().execute(() -> memberStatusListener.handle(new ClusterMember(m.address().toString()),
+				ClusterStatus.UP.equals(state) ? Status.ACTIVE : Status.INACTIVE));
 		if (ClusterStatus.UP.equals(state)) {
 			members.add(m);
 			getAndCreateShareActorCollection(address);

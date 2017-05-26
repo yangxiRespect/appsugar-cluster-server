@@ -24,6 +24,7 @@ public class ActorShareSystemTest extends TestCase {
 	public void testOneSystem() throws Exception {
 		ActorSystem system = ActorSystem.create("singleSystem");
 		ActorShareSystem shareSystem = ActorShareSystem.getSystem(system, (x, y) -> {
+		}, (x, y) -> {
 		});
 		ActorRef ref = system.actorOf(Props.create(TestActor.class), "xx");
 		CompletableFuture<Void> result = shareSystem.share(ref, "xx");
@@ -41,6 +42,7 @@ public class ActorShareSystemTest extends TestCase {
 					.withFallback(ConfigFactory.load());
 			ActorSystem system = ActorSystem.create(systemName, config);
 			ActorShareSystem shareSystem = ActorShareSystem.getSystem(system, (x, y) -> {
+			}, (x, y) -> {
 			});
 			ActorRef ref = system.actorOf(Props.create(TestActor.class), "xx");
 			ActorRef ref1 = system.actorOf(Props.create(TestActor.class), "xx1");
