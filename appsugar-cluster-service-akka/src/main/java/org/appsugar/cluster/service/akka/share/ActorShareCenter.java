@@ -127,12 +127,12 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		logger.info("member event status {} member {}", state, m);
 		if (ClusterStatus.UP.equals(state)) {
 			members.add(m);
+			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().toString()),
+					Status.ACTIVE);
 			getAndCreateShareActorCollection(m.address());
 			if (localActorRefList.isEmpty()) {
 				return;
 			}
-			memberListener.handle(new org.appsugar.cluster.service.domain.Member(m.address().toString()),
-					Status.ACTIVE);
 			logger.debug("send local share actor to member {}  actor address {}", m.address(),
 					as.anchorPath().address());
 			//把本地所有非局部共享actor发送给对应节点
