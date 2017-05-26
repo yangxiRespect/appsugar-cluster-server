@@ -21,6 +21,7 @@ import org.appsugar.cluster.service.api.Focusable;
 import org.appsugar.cluster.service.api.MemberStatusListener;
 import org.appsugar.cluster.service.domain.ClusterMember;
 import org.appsugar.cluster.service.domain.Status;
+import org.appsugar.cluster.service.util.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,16 +116,19 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		}
 		logger.info("member event status {} member {}", state, m);
 		//派发服务状态消息(不适用当前actor线程执行,防止block)
-		system.dispatcher().execute(() -> memberStatusListener.handle(new ClusterMember(m.address().toString()),
-				ClusterStatus.UP.equals(state) ? Status.ACTIVE : Status.INACTIVE));
 		if (ClusterStatus.UP.equals(state)) {
 			members.add(m);
-			getAndCreateShareActorCollection(address);
+			information(address);
+			fireMemberEvent(m, state);
 			ActorSelection as = remoteShareActorSelection(address);
 			normalFocus.stream().forEach(e -> as.tell(new FocusMessage(e), shareCollectorRef));
 			specialFocus.stream().forEach(e -> as.tell(new FocusMessage(e, true), shareCollectorRef));
 		} else {
-			members.remove(m);
+			if (!members.remove(m)) {
+				//如果member已经移除, 那么不在处理移除事件
+				return;
+			}
+			fireMemberEvent(m, state);
 			MemberInformation inf = remoteActorRef.remove(address);
 			if (Objects.isNull(inf)) {
 				return;
@@ -140,17 +144,17 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		}
 	}
 
-	protected List<ActorShare> getAndCreateShareActorCollection(Address address) {
+	protected void fireMemberEvent(Member m, ClusterStatus state) {
+		system.dispatcher().execute(() -> memberStatusListener.handle(new ClusterMember(m.address().toString()),
+				ClusterStatus.UP.equals(state) ? Status.ACTIVE : Status.INACTIVE));
+	}
+
+	protected List<ActorShare> getMemberActorShareList(Address address) {
 		return information(address).getShareActorList();
 	}
 
 	protected MemberInformation information(Address address) {
-		MemberInformation information = remoteActorRef.get(address);
-		if (Objects.isNull(information)) {
-			information = new MemberInformation();
-			remoteActorRef.put(address, information);
-		}
-		return information;
+		return MapUtils.getOrCreate(remoteActorRef, address, MemberInformation::new);
 	}
 
 	public Set<Member> members() {
@@ -228,7 +232,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 				as.tell(msg, ref);
 			});
 		} else {
-			List<ActorShare> remoteActorList = getAndCreateShareActorCollection(address);
+			List<ActorShare> remoteActorList = getMemberActorShareList(address);
 			if (ClusterStatus.UP.equals(status)) {
 				remoteActorList.add(actorShare);
 				if (!specialFocus.contains(name)) {
