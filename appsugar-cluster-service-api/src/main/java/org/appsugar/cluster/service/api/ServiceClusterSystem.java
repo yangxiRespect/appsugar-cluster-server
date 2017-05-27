@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.domain.ClusterMember;
-import org.appsugar.cluster.service.domain.ClusterMemberInformationMessage;
+import org.appsugar.cluster.service.domain.ClusterMemberServiceMessage;
 
 /**
  * 服务集群系统
@@ -101,5 +101,12 @@ public interface ServiceClusterSystem extends SubPubClusterSystem, Focusable {
 	 * @author NewYoung
 	 * 2017年5月26日下午3:34:11
 	 */
-	CompletableFuture<ClusterMemberInformationMessage> inquireInformation(String address);
+	CompletableFuture<ClusterMemberServiceMessage> inquireInformation(String address);
+
+	/**
+	 * 获取指定节点资源信息
+	 * @author NewYoung
+	 * 2017年5月27日下午12:56:54
+	 */
+	CompletableFuture<ClusterMemberServiceMessage> inquireResource(String address);
 }

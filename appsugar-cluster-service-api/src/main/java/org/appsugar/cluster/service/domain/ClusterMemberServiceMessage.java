@@ -8,7 +8,7 @@ import java.util.Set;
  * @author NewYoung
  * 2017年5月25日下午2:10:22
  */
-public class ClusterMemberInformationMessage implements Serializable {
+public class ClusterMemberServiceMessage implements Serializable {
 	private static final long serialVersionUID = -3228945895885152306L;
 	/**节点所提供的服务**/
 	private Set<String> supplyServices;
@@ -17,11 +17,11 @@ public class ClusterMemberInformationMessage implements Serializable {
 	/**特殊关注服务**/
 	private Set<String> specialFocusServices;
 
-	public ClusterMemberInformationMessage() {
+	public ClusterMemberServiceMessage() {
 		super();
 	}
 
-	public ClusterMemberInformationMessage(Set<String> supplyServices, Set<String> focusServices,
+	public ClusterMemberServiceMessage(Set<String> supplyServices, Set<String> focusServices,
 			Set<String> specialFocusServices) {
 		super();
 		this.supplyServices = supplyServices;

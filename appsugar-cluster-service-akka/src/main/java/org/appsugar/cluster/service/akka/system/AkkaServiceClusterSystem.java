@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.akka.system;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +27,8 @@ import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.api.ServiceStatusListener;
 import org.appsugar.cluster.service.domain.ClusterMember;
-import org.appsugar.cluster.service.domain.ClusterMemberInformationMessage;
+import org.appsugar.cluster.service.domain.ClusterMemberResourceMessage;
+import org.appsugar.cluster.service.domain.ClusterMemberServiceMessage;
 import org.appsugar.cluster.service.domain.Status;
 import org.appsugar.cluster.service.domain.SubscribeMessage;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
@@ -43,12 +46,9 @@ import akka.actor.Scheduler;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.pattern.AskableActorSelection;
-import akka.util.Timeout;
 import scala.Option;
-import scala.compat.java8.FutureConverters;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * akka服务集群系统
@@ -60,6 +60,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 	private static final String MONITOR_ACTOR_PATH = "/user/" + MONITOR_ACTOR_NAME;
 	private static final String FOCUS_TOPIC_KEY = "focus_topic";
 	private static final String NODE_INFORMATION_INQUIRE_COMMAND = "node_information_inquire";
+	private static final String NODE_RESOURCE_INQUIRE_COMMAND = "node_resource_inquire";
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
 	private ActorSystem system;
 	private ActorShareSystem actorShareSystem;
@@ -68,6 +69,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 	private Map<ActorRef, AkkaServiceRef> actorRefMapping = new ConcurrentHashMap<>();
 	private Set<ServiceStatusListener> serviceStatusListenerSet = new CopyOnWriteArraySet<>();
 	private Set<MemberStatusListener> memberStatusListenerSet = new CopyOnWriteArraySet<>();
+	private Map<String, AkkaServiceRef> memberMonitorRefs = new ConcurrentHashMap<>();
 
 	/**共享actor名称,从0开始.**/
 	private AtomicInteger actorNameGenerator = new AtomicInteger(0);
@@ -91,10 +93,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 			consumer = ref -> {
 				String shareName = ref.getName();
 				ActorRef actorRef = ref.getActorRef();
-				MessageProcessorChain chain = new MessageProcessorChain(new AskPatternMessageProcessor());
-				ActorRef askPatternRef = system.actorOf(Props.create(ProcessorChainActor.class, chain),
-						"ask" + askActorNameGenerator.getAndIncrement());
-				AkkaServiceRef akkaServiceRef = new AkkaServiceRef(actorRef, shareName, askPatternRef);
+				AkkaServiceRef akkaServiceRef = createServiceRef(actorRef, shareName);
 				actorRefMapping.put(actorRef, akkaServiceRef);
 				getAndCreateServiceClusterRef(shareName).addServiceRef(akkaServiceRef);
 				notifyServiceStatusListener(akkaServiceRef, Status.ACTIVE);
@@ -289,30 +288,77 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 
 	@Override
 	public void handle(ClusterMember member, Status status) {
+		String address = member.getAddress();
+		if (Objects.equals(Status.ACTIVE, status)) {
+			ActorSelection selection = system.actorSelection(address + MONITOR_ACTOR_PATH);
+			selection.resolveOneCS(FiniteDuration.apply(30, TimeUnit.SECONDS)).whenComplete((ref, e) -> {
+				if (Objects.nonNull(e)) {
+					logger.warn("create remote {}  monitor ref exception", address, e);
+					return;
+				}
+				memberMonitorRefs.put(address, createServiceRef(ref, MONITOR_ACTOR_NAME));
+			});
+		} else {
+			memberMonitorRefs.remove(address);
+		}
 		//dispatcher event
 		memberStatusListenerSet.forEach(e -> e.handle(member, status));
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public CompletableFuture<ClusterMemberInformationMessage> inquireInformation(String address) {
-		ActorSelection selection = system.actorSelection(address + MONITOR_ACTOR_PATH);
-		AskableActorSelection askSelection = new AskableActorSelection(selection);
-		Future future = askSelection.ask(NODE_INFORMATION_INQUIRE_COMMAND, new Timeout(30, TimeUnit.SECONDS));
-		return (CompletableFuture<ClusterMemberInformationMessage>) FutureConverters.toJava(future);
+	public CompletableFuture<ClusterMemberServiceMessage> inquireInformation(String address) {
+		return inquireCommand(address, NODE_INFORMATION_INQUIRE_COMMAND);
+	}
+
+	@Override
+	public CompletableFuture<ClusterMemberServiceMessage> inquireResource(String address) {
+		return inquireCommand(address, NODE_RESOURCE_INQUIRE_COMMAND);
+	}
+
+	private <T> CompletableFuture<T> inquireCommand(String address, String command) {
+		AkkaServiceRef ref = memberMonitorRefs.get(address);
+		if (ref == null) {
+			String msg = "member monitor ref not ready address is " + address + " command is " + command;
+			logger.warn(msg);
+			throw new RuntimeException(msg);
+		}
+		return ref.ask(command);
 	}
 
 	private void createMonitorActor() {
-		MessageProcessorChain chain = new MessageProcessorChain((ctx, msg) -> {
+		MessageProcessorChain chain = new MessageProcessorChain(new AskPatternMessageProcessor(), (ctx, msg) -> {
 			Object reply = null;
 			//处理节点数据查询请求
 			if (Objects.equals(msg, NODE_INFORMATION_INQUIRE_COMMAND)) {
-				reply = new ClusterMemberInformationMessage(supplys(), normalFocus(), specialFocus());
+				reply = new ClusterMemberServiceMessage(supplys(), normalFocus(), specialFocus());
 			}
-			ctx.getSender().tell(reply, ctx.getSelf());
-			return null;
+			//查询当前节点资源信息
+			else if (Objects.equals(msg, NODE_RESOURCE_INQUIRE_COMMAND)) {
+				reply = populateResource();
+			}
+			return reply;
 		});
 		system.actorOf(Props.create(ProcessorChainActor.class, chain), MONITOR_ACTOR_NAME);
+	}
+
+	private ClusterMemberResourceMessage populateResource() {
+		ClusterMemberResourceMessage result = new ClusterMemberResourceMessage();
+		Runtime runtime = Runtime.getRuntime();
+		result.setAvailableProcessors(runtime.availableProcessors());
+		result.setVmFreeMemroy(runtime.freeMemory());
+		result.setVmTotalMemory(runtime.totalMemory());
+		ThreadMXBean threadMxbean = ManagementFactory.getThreadMXBean();
+		result.setVmThreadCount(threadMxbean.getThreadCount());
+		result.setVmDaemonThreadCount(threadMxbean.getDaemonThreadCount());
+		return result;
+	}
+
+	private AkkaServiceRef createServiceRef(ActorRef des, String name) {
+		MessageProcessorChain chain = new MessageProcessorChain(new AskPatternMessageProcessor());
+		ActorRef askPatternRef = system.actorOf(Props.create(ProcessorChainActor.class, chain),
+				"ask" + askActorNameGenerator.getAndIncrement());
+		AkkaServiceRef akkaServiceRef = new AkkaServiceRef(des, name, askPatternRef);
+		return akkaServiceRef;
 	}
 
 }
