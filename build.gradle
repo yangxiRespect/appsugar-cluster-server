@@ -26,8 +26,6 @@ env.putAll(loadGroovyConfig(System.getProperty("profile")))
 env.putAll(System.properties)
 
 release {
-	 failOnCommitNeeded = false
-    failOnPublishNeeded = false
     git {
         requireBranch = '1.3.x'
         pushToRemote = 'origin'
