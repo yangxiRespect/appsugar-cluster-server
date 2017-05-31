@@ -25,14 +25,6 @@ def env = loadGroovyConfig("base")
 env.putAll(loadGroovyConfig(System.getProperty("profile")))
 env.putAll(System.properties)
 
-release{ 
-	 failOnCommitNeeded = false
-    failOnPublishNeeded = false
-	git {
-	    requireBranch = "dev2.x"
-	    //pushToRemote = "dev2.x"
-	}
-}
 
 configure(subprojects) { project ->
 	apply plugin: "java"
