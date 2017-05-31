@@ -25,14 +25,6 @@ def env = loadGroovyConfig("base")
 env.putAll(loadGroovyConfig(System.getProperty("profile")))
 env.putAll(System.properties)
 
-release {
-    git {
-        requireBranch = '1.3.x'
-        pushToRemote = 'origin'
-        pushToCurrentBranch = true
-    }
-}
-
 configure(subprojects) { project ->
 	apply plugin: "java"
 	apply plugin: "maven"
