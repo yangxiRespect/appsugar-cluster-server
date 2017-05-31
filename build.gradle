@@ -35,11 +35,13 @@ configure(subprojects) { project ->
 		maven{url "http://maven.aliyun.com/nexus/content/groups/public"}
 		mavenCentral()
 		mavenLocal()
+		maven{url "http://nexus.ggxueche.cn/nexus/content/groups/public/"}
 	}
 	// put env to project ext
 	env.each{ k, v -> ext.set(k,v)}
 	
-	ext{
+	ext{                 
+		appsugarVersion = "2.2.8.RELEASE"
 		junitVersion = "4.12"
 		slf4jVersion = "1.7.25"
 		logbackVersion = "1.2.3"
@@ -120,6 +122,7 @@ project(":appsugar-cluster-service-binding"){
 project(":appsugar-cluster-service-binding-spring"){
 	dependencies{
 		compile project(":appsugar-cluster-service-binding")
+		compile ("org.appsugar:appsugar-commons:${appsugarVersion}")
 		compileOnly("org.springframework:spring-context:${springVersion}")
 		compileOnly ("org.springframework.data:spring-data-jpa:1.11.1.RELEASE")
 		testCompile("org.springframework:spring-context:${springVersion}")
