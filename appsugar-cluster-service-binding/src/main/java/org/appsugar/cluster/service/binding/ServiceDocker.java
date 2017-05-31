@@ -1,13 +1,17 @@
 package org.appsugar.cluster.service.binding;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
-import org.appsugar.cluster.service.domain.KeyValue;
 import org.appsugar.cluster.service.util.CompletableFutureUtil;
+import org.appsugar.cluster.service.util.MapUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 服务docker
@@ -18,10 +22,11 @@ import org.appsugar.cluster.service.util.CompletableFutureUtil;
  * @param <P>
  */
 public class ServiceDocker<R, P> {
-
+	private static final Logger logger = LoggerFactory.getLogger(ServiceDocker.class);
 	private DockerExecutable<R, P> executeable;
 	private Function<P, Object> sequenceFuntion;
-	private List<KeyValue<Object, List<CompletableFuture<R>>>> dockerList = new LinkedList<>();
+	private Map<Object, List<CompletableFuture<R>>> dockerList = new TreeMap<>();
+	private Supplier<List<CompletableFuture<R>>> linkedListSupply = LinkedList::new;
 
 	public ServiceDocker(DockerExecutable<R, P> executeable, Function<P, Object> sequenceFuntion) {
 		super();
@@ -51,25 +56,16 @@ public class ServiceDocker<R, P> {
 	}
 
 	protected List<CompletableFuture<R>> queryAndCreate(Object sequence) {
-		for (KeyValue<Object, List<CompletableFuture<R>>> entry : dockerList) {
-			if (sequence.equals(entry.getKey())) {
-				return entry.getValue();
-			}
-		}
-		List<CompletableFuture<R>> result = new LinkedList<>();
-		dockerList.add(new KeyValue<>(sequence, result));
-		return result;
+		return MapUtils.getOrCreate(dockerList, sequence, linkedListSupply);
 	}
 
 	protected void notifyAndRemove(Object sequence, R result, Throwable ex) {
-		for (Iterator<KeyValue<Object, List<CompletableFuture<R>>>> it = dockerList.iterator(); it.hasNext();) {
-			KeyValue<Object, List<CompletableFuture<R>>> entry = it.next();
-			if (entry.getKey().equals(sequence)) {
-				it.remove();
-				List<CompletableFuture<R>> consumerList = entry.getValue();
-				consumerList.stream().forEach(f -> CompletableFutureUtil.completeNormalOrThrowable(f, result, ex));
-				consumerList.clear();
-				break;
+		List<CompletableFuture<R>> consumerList = dockerList.remove(sequence);
+		for (CompletableFuture<R> future : consumerList) {
+			try {
+				CompletableFutureUtil.completeNormalOrThrowable(future, result, ex);
+			} catch (Throwable e) {
+				logger.warn("notify docker result sequence {} cause some error ", sequence, e);
 			}
 		}
 	}

@@ -18,7 +18,7 @@ import function.ThrowableSupplier;
 /**
  * 基础service  
  */
-public abstract class AbstractFacade {
+public abstract class AbstractFacadeImpl {
 	protected AsyncExecutor executor;
 
 	@Autowired
@@ -83,7 +83,7 @@ public abstract class AbstractFacade {
 	 * @param noneKey 无key存在索引
 	 * @param docker 数据请求工具  
 	 */
-	protected <T, P> CompletableFuture<T> resultOf(P key, Index<P, T> index, Cache<Object, Boolean> noneKey,
+	protected <T, P> CompletableFuture<T> resultOf(P key, Index<P, T> index, Cache<P, Boolean> noneKey,
 			ServiceDocker<T, P> docker) {
 		return resultOf(key, index, noneKey, docker, null);
 	}
@@ -97,28 +97,9 @@ public abstract class AbstractFacade {
 	 * @param docker 数据请求工具 
 	 * @param postProcess 数据查询后处理器（可以为空）
 	 */
-	protected <T, P> CompletableFuture<T> resultOf(P key, Index<P, T> index, Cache<Object, Boolean> noneKey,
+	protected <T, P> CompletableFuture<T> resultOf(P key, Index<P, T> index, Cache<P, Boolean> noneKey,
 			ServiceDocker<T, P> docker, Consumer<T> postProcess) {
-		if (Objects.nonNull(noneKey) && Objects.nonNull(noneKey.getIfPresent(key))) {
-			return complete(null);
-		}
-		T result = index.get(key);
-		if (Objects.nonNull(result)) {
-			return complete(result);
-		}
-		CompletableFuture<T> future = docker.inquire(key);
-		if (Objects.isNull(postProcess) && Objects.isNull(noneKey)) {
-			return future;
-		}
-		future.thenAccept(e -> {
-			if (Objects.nonNull(postProcess)) {
-				postProcess.accept(e);
-			}
-			if (Objects.isNull(e) && Objects.nonNull(noneKey)) {
-				noneKey.put(key, Boolean.TRUE);
-			}
-		});
-		return future;
+		return resultOf(key, index, noneKey, docker, postProcess, null);
 	}
 
 	/**
@@ -131,9 +112,9 @@ public abstract class AbstractFacade {
 	 * @param postProcess 数据查询后处理器（可以为空）
 	 * @param fallbackProcess 失败处理器 (可以为空)
 	 */
-	protected <T, P> CompletableFuture<T> resultOf(P key, Index<P, T> index, Cache<Object, Boolean> noneKey,
+	protected <T, P> CompletableFuture<T> resultOf(P key, Index<P, T> index, Cache<P, Boolean> noneKey,
 			ServiceDocker<T, P> docker, Consumer<T> postProcess, Consumer<Throwable> fallbackProcess) {
-		if (noneKey != null && noneKey.getIfPresent(key) == Boolean.TRUE) {
+		if (Objects.nonNull(noneKey) && Objects.nonNull(noneKey.getIfPresent(key))) {
 			return complete(null);
 		}
 		T result = index.get(key);
@@ -151,14 +132,15 @@ public abstract class AbstractFacade {
 				fallbackProcess.accept(e);
 				return;
 			}
+			//如果没有查询到值把对应key加入到未存在缓存中
+			if (Objects.isNull(r) && Objects.nonNull(noneKey)) {
+				noneKey.put(key, Boolean.TRUE);
+			}
 			//调用成功处理器
 			if (Objects.nonNull(postProcess)) {
 				postProcess.accept(r);
 			}
-			//如果没有查询到值把对应key加入到未存在缓存中
-			if (Objects.isNull(r) && noneKey != null) {
-				noneKey.put(key, Boolean.TRUE);
-			}
+
 		});
 		return future;
 	}
