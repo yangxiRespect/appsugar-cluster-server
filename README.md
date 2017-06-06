@@ -52,6 +52,7 @@ Appsugar Cluster 是一款RPC框架. 基于[Akka](http://akka.io) 实现.
 ```
 
 	system.require(HelloFacade.class); //启动程序时,消费者需告知系统所依赖的服务
+	HelloFacade facade = system.serviceOf(HelloFacade.class);
 	facade.sayHello("hello").thenAccept(System.out::println); //调用服务方法
 ```
 
