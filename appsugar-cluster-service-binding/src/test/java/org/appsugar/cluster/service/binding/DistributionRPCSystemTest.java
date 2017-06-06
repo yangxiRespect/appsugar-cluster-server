@@ -11,6 +11,7 @@ import org.appsugar.cluster.service.annotation.ExecuteDefault;
 import org.appsugar.cluster.service.annotation.ExecuteOnClose;
 import org.appsugar.cluster.service.annotation.ExecuteOnEvent;
 import org.appsugar.cluster.service.annotation.ExecuteOnServiceReady;
+import org.appsugar.cluster.service.annotation.ExecuteRepeat;
 import org.appsugar.cluster.service.annotation.Service;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
 import org.appsugar.cluster.service.api.DynamicServiceFactory;
@@ -175,4 +176,10 @@ class HelloImpl implements Hello {
 	public void close() {
 		System.out.println("=========================service closed============================");
 	}
+
+	@ExecuteRepeat(3000)
+	public void repeat() {
+		//3秒执行一次
+	}
+
 }

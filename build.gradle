@@ -130,3 +130,9 @@ project(":appsugar-cluster-service-binding-spring"){
 		testCompile ("org.springframework:spring-test:${springVersion}")
 	}
 }
+
+project(":appsugar-cluster-service-examples"){
+	dependencies{
+		compile project(":appsugar-cluster-service-binding-spring")
+	}
+}
