@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.domain;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -12,6 +13,10 @@ public class ServiceDescriptor {
 	private boolean local;
 	/**服务者**/
 	private List<Object> serves;
+
+	public ServiceDescriptor(Object... serves) {
+		this(Arrays.asList(serves));
+	}
 
 	public ServiceDescriptor(List<Object> serves) {
 		this(serves, false);
