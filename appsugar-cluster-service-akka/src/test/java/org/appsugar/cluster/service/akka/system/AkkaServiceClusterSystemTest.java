@@ -85,7 +85,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		List<ServiceClusterSystem> systemList = new ArrayList<>();
 		ServiceClusterSystem first = null;
 		for (int port : prots) {
-			Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)
+			Config config = ConfigFactory.parseString("akka.remote.artery.canonical.port=" + port)
 					.withFallback(ConfigFactory.load());
 			ServiceClusterSystem system = new AkkaServiceClusterSystem(systemName, config);
 			if (first == null) {
@@ -97,7 +97,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		Thread.sleep(4000);
 		ServiceClusterRef clusterRef = first.serviceOf("hello");
 		logger.debug("cluster ref is {} result is {}", clusterRef, clusterRef.balance().ask("xxxx").get());
-		System.out.println(systemList.get(1).inquireInformation("akka.tcp://" + systemName + "@127.0.0.1:2551").get());
+		System.out.println(systemList.get(1).inquireInformation("akka://" + systemName + "@127.0.0.1:2551").get());
 		systemList.stream().forEachOrdered(s -> s.terminate());
 	}
 

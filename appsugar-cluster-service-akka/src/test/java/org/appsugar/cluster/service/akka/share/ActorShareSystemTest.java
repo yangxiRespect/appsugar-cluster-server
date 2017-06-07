@@ -38,7 +38,7 @@ public class ActorShareSystemTest extends TestCase {
 		String systemName = "ClusterSystem";
 		Set<ActorSystem> systemSets = new HashSet<>();
 		for (int port : prots) {
-			Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)
+			Config config = ConfigFactory.parseString("akka.remote.artery.canonical.port=" + port)
 					.withFallback(ConfigFactory.load());
 			ActorSystem system = ActorSystem.create(systemName, config);
 			ActorShareSystem shareSystem = ActorShareSystem.getSystem(system, (x, y) -> {

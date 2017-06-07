@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.binding;
 
+import static org.appsugar.cluster.service.util.CompletableFutureUtil.exceptionally;
+
 import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Collections;
@@ -101,7 +103,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		}
 		//如果创建者不存在,那么直接抛出异常
 		if (!exist(serviceName)) {
-			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
+			return exceptionally(new ServiceException("DynamicCreateService " + serviceName + " does not exist"));
 		}
 		//标注我所关注该动态服务
 		system.focusDynamicService(serviceName, sequence);
@@ -151,7 +153,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		//通知系统关注动态服务
 		system.focusDynamicService(serviceName, sequence);
 		if (!exist(serviceName)) {
-			throw new ServiceException("DynamicCreateService " + serviceName + " does not exist");
+			return exceptionally(new ServiceException("DynamicCreateService " + serviceName + " does not exist"));
 		}
 		Map<Class<?>, Object> finalServiceProxyCache = serviceProxyCache;
 		ServiceRef ref = masterFunction.apply(system.serviceOf(serviceName));

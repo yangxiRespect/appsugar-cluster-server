@@ -14,6 +14,17 @@ import org.appsugar.cluster.service.domain.FutureMessage;
 public class CompletableFutureUtil {
 
 	/**
+	 * 返回一个异常完成future
+	 * @author NewYoung
+	 * 2017年6月7日下午1:34:05
+	 */
+	public static <T> CompletableFuture<T> exceptionally(Throwable ex) {
+		CompletableFuture<T> future = new CompletableFuture<>();
+		future.completeExceptionally(ex);
+		return future;
+	}
+
+	/**
 	 * 使future完成
 	 */
 	public static <T> void completeNormalOrThrowable(CompletableFuture<T> future, T result, Throwable e) {

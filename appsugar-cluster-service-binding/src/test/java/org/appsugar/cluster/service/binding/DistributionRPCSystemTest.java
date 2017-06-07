@@ -61,15 +61,21 @@ public class DistributionRPCSystemTest extends TestCase {
 	}
 
 	public void testBinding() throws Exception {
-		Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + 2551)
+		Config config = ConfigFactory.parseString("akka.remote.artery.canonical.port=" + 2551)
 				.withFallback(ConfigFactory.load());
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("ClusterSystem", config));
 		system.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), Hello.serviceName);
 		Thread.sleep(4000);
+		system.terminate();
 	}
 
 	public void testRemoteInvoke() throws Exception {
+		Config config = ConfigFactory.parseString("akka.remote.artery.canonical.port=" + 2551)
+				.withFallback(ConfigFactory.load());
+		DistributionRPCSystem s = new DistributionRPCSystemImpl(new AkkaServiceClusterSystem("ClusterSystem", config));
+		s.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), Hello.serviceName);
+
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("ClusterSystem", ConfigFactory.load()));
 		Hello hello = system.serviceOf(Hello.class);
@@ -77,6 +83,8 @@ public class DistributionRPCSystemTest extends TestCase {
 		String sayHello = hello.sayHello();
 		System.out.println("sayHello " + sayHello);
 		Thread.sleep(2000);
+		s.terminate();
+		system.terminate();
 	}
 
 }

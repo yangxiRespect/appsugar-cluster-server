@@ -62,25 +62,25 @@ public class AkkaServiceRef implements ServiceRef, Comparable<AkkaServiceRef> {
 			throw new IllegalArgumentException("timeout mush greater than 0");
 		}
 		CompletableFuture<T> future = new CompletableFuture<>();
+		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
 		AkkaServiceContext context = (AkkaServiceContext) ServiceContextUtil.context();
 		if (Objects.nonNull(context)) {
 			ServiceRef self = context.self();
 			//处理非同一系统请求
 			if (!((AkkaServiceRef) self).system.equals(this.system)) {
 				//把消息交由askPatterRef去请求.
-				askPatternRef.tell(new AskPatternEvent<>(msg, future, timeout, destination), ActorRef.noSender());
+				askPatternRef.tell(event, ActorRef.noSender());
 				return CompletableFutureUtil.wrapContextFuture(future);
 			}
 			//解决多次tell性能问题
 			ProcessorContext pctx = context.getAttribute(ServiceContextBindingProcessor.PROCESSOR_CONTEXT_KEY);
 			try {
-				pctx.processNext(new AskPatternEvent<>(msg, future, timeout, destination));
+				pctx.processNext(event);
 			} catch (Throwable e) {
 				future.completeExceptionally(e);
 			}
 			return future;
 		}
-		AskPatternEvent<T> event = new AskPatternEvent<>(msg, future, timeout, destination);
 		askPatternRef.tell(event, ActorRef.noSender());
 		return future;
 	}
