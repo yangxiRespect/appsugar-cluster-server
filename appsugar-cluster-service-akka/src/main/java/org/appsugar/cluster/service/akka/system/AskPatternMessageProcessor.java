@@ -57,7 +57,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 		} else if (msg instanceof AskPatternResponse) {
 			processResponse((AskPatternResponse) msg, ctx);
 		} else if (msg instanceof RepeatEvent) {
-			processRepeatEvent((RepeatEvent) msg, ctx);
+			processRepeatEvent();
 		} else if (msg instanceof AskPatternException) {
 			logger.error("remote service cause internal exception  {}", ((AskPatternException) msg).getMsg());
 		} else {
@@ -136,7 +136,7 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	/**
 	 * 处理系统重复消息
 	 */
-	protected void processRepeatEvent(RepeatEvent event, ProcessorContext ctx) {
+	protected void processRepeatEvent() {
 		if (waitingCount < 1) {
 			//fix memory leak 
 			refMarkerMap.clear();
@@ -196,21 +196,15 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	}
 
 	/**
-	 * 组装异常消息
+	 * 获取顶级异常信息
 	 */
 	private String getExceptionMessage(Throwable e) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(e.getClass().getName());
-		sb.append(e.getMessage());
-		Throwable cause = e.getCause();
-		while (cause != null) {
-			sb.append(cause.getClass().getName());
-			sb.append(" : ");
-			sb.append(cause.getMessage());
-			cause = cause.getCause();
-			sb.append("\n");
+		Throwable cause;
+		Throwable root = e;
+		while ((cause = e.getCause()) != null) {
+			root = cause;
 		}
-		return sb.toString();
+		return root.getMessage();
 	}
 
 	/**
