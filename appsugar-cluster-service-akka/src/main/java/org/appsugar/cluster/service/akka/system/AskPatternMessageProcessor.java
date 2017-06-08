@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
@@ -89,16 +90,16 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 	/**
 	 * 处理来自其他服务的请求
 	 */
+	@SuppressWarnings("unchecked")
 	protected void processRequest(AskPatternRequest req, ProcessorContext ctx) {
 		int sequence = req.getSequence();
 		Object msg = req.getData();
 		ActorRef sender = ctx.getSender();
 		try {
 			Object result = ctx.processNext(msg);
-			if (result instanceof CompletableFuture) {
+			if (result instanceof CompletionStage) {
 				//如果返回的是future,那么对future做特殊处理
-				@SuppressWarnings("unchecked")
-				CompletableFuture<Object> future = (CompletableFuture<Object>) result;
+				CompletionStage<Object> future = (CompletionStage<Object>) result;
 				future.whenComplete((r, e) -> {
 					Object responseData = e == null ? r : e;
 					response(sequence, responseData, sender, ctx.getSelf());
