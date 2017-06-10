@@ -218,7 +218,8 @@ public class AskPatternMessageProcessor implements MessageProcessor {
 		Scheduler scheduler = ctx.getSystem().scheduler();
 		ActorRef self = ctx.getSelf();
 		cancellable = scheduler.schedule(Duration.create(100, TimeUnit.MILLISECONDS),
-				Duration.create(1000, TimeUnit.MILLISECONDS), self, repeatEvent, ctx.getSystem().dispatcher(), null);
+				Duration.create(5000, TimeUnit.MILLISECONDS), self, repeatEvent, ctx.getSystem().dispatcher(),
+				ActorRef.noSender());
 	}
 
 	private RequestMarker<?> removeRequestMarkerBySequence(ActorRef ref, int sequence) {
