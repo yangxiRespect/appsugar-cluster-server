@@ -54,7 +54,7 @@ public class AsyncExecutor {
 	 * 2017年3月10日下午1:32:25
 	 */
 	public <T> CompletableFuture<T> executeInTransaction(ThrowableSupplier<T> supplier) {
-		return executeInTransaction(supplier, true);
+		return executeInTransaction(supplier, false);
 	}
 
 	public CompletableFuture<Void> executeInTransaction(Runnable exec, boolean readOnly) {
