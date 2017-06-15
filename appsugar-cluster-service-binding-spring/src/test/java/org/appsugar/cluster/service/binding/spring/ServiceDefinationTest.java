@@ -10,10 +10,10 @@ public class ServiceDefinationTest extends BaseSpringTest {
 	private SampleService sampleService;
 
 	@Test
-	public void testAreYouOk() {
-		String msg = sampleService.areYouOk("小李子");
+	public void testAreYouOk() throws Exception {
+		String msg = sampleService.areYouOk("小李子").get();
 		logger.debug("msg is {}", msg);
-		msg = sampleService.areYouOk("雷军");
+		msg = sampleService.areYouOk("雷军").get();
 		logger.debug("msg is {}", msg);
 	}
 

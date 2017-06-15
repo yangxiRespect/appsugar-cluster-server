@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -17,6 +18,7 @@ import org.appsugar.cluster.service.domain.KeyValue;
 import org.appsugar.cluster.service.domain.MethodInvokeMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeOptimizingMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeOptimizingResponse;
+import org.appsugar.cluster.service.util.CompletableFutureUtil;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
 
 /**
@@ -30,6 +32,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 	private ServiceClusterSystem system;
 	private Map<Method, List<String>> paramNameMap;
 	private Class<?> interfaceClass;
+	private ServiceNotFoundException exception;
 
 	public ServiceInvokeHandler(ServiceClusterSystem system, Class<?> interfaceClass) {
 		this(system, interfaceClass, RPCSystemUtil.getServiceName(interfaceClass));
@@ -43,6 +46,8 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		paramNameMap = Arrays.asList(interfaceClass.getMethods()).stream()
 				.map(e -> new KeyValue<>(e, RPCSystemUtil.getNameList(interfaceClass, e)))
 				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+		exception = new ServiceNotFoundException("service " + name + " not ready");
+
 	}
 
 	@Override
@@ -59,17 +64,18 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		default:
 			break;
 		}
+		boolean async = CompletionStage.class.isAssignableFrom(method.getReturnType());
+		if (!async) {
+			throw new UnsupportedOperationException("sync method invoke not allowed");
+		}
 		ServiceClusterRef serviceClusterRef = system.serviceOf(name);
-		if (serviceClusterRef == null) {
-			throw new ServiceNotFoundException("service " + name + " not ready");
+		if (serviceClusterRef == null || serviceClusterRef.size() == 0) {
+			return CompletableFutureUtil.exceptionally(exception);
 		}
 		ServiceRef serviceRef = serviceClusterRef.balance();
-		if (serviceRef == null) {
-			throw new ServiceNotFoundException("service " + name + " not ready");
-		}
 		Object message = populateMethodInvokerMessage(method, args, serviceRef);
 		CompletableFuture<?> future = invokeAsync(message, serviceRef, method);
-		return CompletableFuture.class.isAssignableFrom(method.getReturnType()) ? future : future.get();
+		return async ? future : future.get();
 	}
 
 	protected CompletableFuture<Object> invokeAsync(Object message, ServiceRef serviceRef, Method method)
@@ -134,5 +140,4 @@ public class ServiceInvokeHandler implements InvocationHandler {
 				.append(", interfaceClass=").append(interfaceClass).append("]");
 		return builder.toString();
 	}
-
 }

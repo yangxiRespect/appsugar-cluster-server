@@ -32,6 +32,7 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.cluster.Member;
 
 /**
@@ -55,6 +56,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	private ActorSystem system;
 	private ActorRef shareCollectorRef;
 	private ActorShareListener actorShareListener;
+	private Address selfAddress;
 	/**节点监听器**/
 	private MemberStatusListener memberStatusListener;
 	/**普通关注列表**/
@@ -72,6 +74,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		this.actorShareListener = actorShareListener;
 		shareCollectorRef = system.actorOf(Props.create(ActorShareCollector.class, this, this),
 				ACTOR_SHARE_COLLECTOR_NAME);
+		this.selfAddress = Cluster.get(system).selfAddress();
 	}
 
 	/**
@@ -113,7 +116,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	@Override
 	public void handle(Member m, ClusterStatus state) {
 		Address address = m.address();
-		if (address.hasLocalScope()) {
+		if (isLocalAddress(address)) {
 			return;
 		}
 		logger.info("member event status {} member {}", state, m);
@@ -209,7 +212,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		ActorRef ref = actorShare.getActorRef();
 		Address address = ref.path().address();
 		//如果是本地actor服务(本地服务一次只会有一个)
-		if (address.hasLocalScope()) {
+		if (isLocalAddress(address)) {
 			if (ClusterStatus.UP.equals(status)) {
 				localActorRefList.add(actorShare);
 			} else {
@@ -261,6 +264,10 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 
 	ActorSelection remoteShareActorSelection(Address address) {
 		return system.actorSelection(address + ACTOR_SHARE_COLLECTOR_PATH);
+	}
+
+	boolean isLocalAddress(Address address) {
+		return address.hasLocalScope() ? true : address.equals(selfAddress);
 	}
 
 	/**

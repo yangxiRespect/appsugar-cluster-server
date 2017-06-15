@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.binding.spring;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.appsugar.cluster.service.annotation.Service;
 
 /**
@@ -11,5 +13,5 @@ import org.appsugar.cluster.service.annotation.Service;
 public interface SampleService {
 	public static final String name = "sample";
 
-	public String areYouOk(String whoAsk);
+	public CompletableFuture<String> areYouOk(String whoAsk);
 }

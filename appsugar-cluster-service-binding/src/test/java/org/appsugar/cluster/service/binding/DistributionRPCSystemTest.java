@@ -34,8 +34,8 @@ public class DistributionRPCSystemTest extends TestCase {
 				new AkkaServiceClusterSystem("a", ConfigFactory.load()));
 		system.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), "test");
 		Hello h = system.serviceOf(Hello.class);
-		System.out.println(" 调用第一次结果" + h.sayHello());
-		System.out.println(" 调用第二次结果" + h.sayHello());
+		System.out.println(" 调用第一次结果" + h.asyncSayHello().get());
+		System.out.println(" 调用第二次结果" + h.asyncSayHello().get());
 		System.out.println(" async 调用结果" + h.asyncSayHello().get());
 		system.publish("1String", "play");
 		system.publish(1, "play");
@@ -61,7 +61,7 @@ public class DistributionRPCSystemTest extends TestCase {
 	}
 
 	public void testBinding() throws Exception {
-		Config config = ConfigFactory.parseString("akka.remote.artery.canonical.port=" + 2551)
+		Config config = ConfigFactory.parseString("akka.remote.artery.canonical.port=" + 0)
 				.withFallback(ConfigFactory.load());
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("ClusterSystem", config));
@@ -75,12 +75,11 @@ public class DistributionRPCSystemTest extends TestCase {
 				.withFallback(ConfigFactory.load());
 		DistributionRPCSystem s = new DistributionRPCSystemImpl(new AkkaServiceClusterSystem("ClusterSystem", config));
 		s.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), Hello.serviceName);
-
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(
 				new AkkaServiceClusterSystem("ClusterSystem", ConfigFactory.load()));
 		Hello hello = system.serviceOf(Hello.class);
 		Thread.sleep(3000);
-		String sayHello = hello.sayHello();
+		String sayHello = hello.asyncSayHello().get();
 		System.out.println("sayHello " + sayHello);
 		Thread.sleep(2000);
 		s.terminate();
@@ -92,7 +91,7 @@ public class DistributionRPCSystemTest extends TestCase {
 @DynamicService("productCreate")
 interface ProductOperationService {
 
-	public Long id();
+	public CompletableFuture<Long> id();
 
 }
 
@@ -106,8 +105,8 @@ class ProductOperationServiceImpl implements ProductOperationService {
 	}
 
 	@Override
-	public Long id() {
-		return id;
+	public CompletableFuture<Long> id() {
+		return CompletableFuture.completedFuture(id);
 	}
 
 }
@@ -138,8 +137,6 @@ class ProductOperationServiceServiceFactory implements DynamicServiceFactory {
 interface Hello extends Hello1 {
 	public static final String serviceName = "test";
 
-	public String sayHello();
-
 	public CompletableFuture<String> asyncSayHello();
 }
 
@@ -149,11 +146,6 @@ interface Hello1 {
 
 class HelloImpl implements Hello {
 	int i = 0;
-
-	@Override
-	public String sayHello() {
-		return "hello" + (i++);
-	}
 
 	@Override
 	public CompletableFuture<String> asyncSayHello() {
