@@ -65,6 +65,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	private Set<String> dynamicFocus = ConcurrentHashMap.newKeySet();
 	/**特殊关注列表**/
 	private Set<String> specialFocus = ConcurrentHashMap.newKeySet();
+	/**动态工厂列表**/
+	private Set<String> dynamicFactoryNames = ConcurrentHashMap.newKeySet();
 
 	public ActorShareCenter(ActorSystem system, ActorShareListener actorShareListener,
 			MemberStatusListener memberStatusListener) {
@@ -126,8 +128,10 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			information(address);
 			fireMemberEvent(m, state);
 			ActorSelection as = remoteShareActorSelection(address);
-			normalFocus.stream().forEach(e -> as.tell(new FocusMessage(e), shareCollectorRef));
-			specialFocus.stream().forEach(e -> as.tell(new FocusMessage(e, true), shareCollectorRef));
+			//节点上线,发送本地所有关心的普通服务到该节点上
+			if (!normalFocus.isEmpty()) {
+				as.tell(new FocusMessage(normalFocus), shareCollectorRef);
+			}
 		} else {
 			if (!members.remove(m)) {
 				//如果member已经移除, 那么不在处理移除事件
@@ -180,13 +184,14 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	@Override
 	public void focusDynamicService(String name, String sequence) {
 		String realName = DynamicServiceUtils.getDynamicServiceNameWithSequence(name, sequence);
+		dynamicFactoryNames.add(name);
 		if (!dynamicFocus.add(realName)) {
 			return;
 		}
 		logger.debug("focus dynamic service {}", realName);
-		FocusMessage focusMessage = new FocusMessage(name, false);
+		FocusMessage focusMessage = new FocusMessage(realName, false);
 		//通知服务名为name的所有节点. 我关注这个动态服务
-		remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOn(name))
+		remoteActorRef.entrySet().stream().filter(e -> e.getValue().supplyOn(name))
 				.forEach(e -> notifyFocusMessage(e.getKey(), focusMessage));
 	}
 
@@ -198,7 +203,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		logger.debug("focus  special  service {}", name);
 		FocusMessage focusMessage = new FocusMessage(name, true);
 		//通知服务名为name的所有节点. 我关注所有name开头的动态服务
-		remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOn(name))
+		remoteActorRef.entrySet().stream().filter(e -> e.getValue().supplyOn(name))
 				.forEach(e -> notifyFocusMessage(e.getKey(), focusMessage));
 	}
 
@@ -240,16 +245,44 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			List<ActorShare> remoteActorList = getMemberActorShareList(address);
 			if (ClusterStatus.UP.equals(status)) {
 				remoteActorList.add(actorShare);
-				if (!specialFocus.contains(name)) {
-					return;
-				}
-				//告诉当前member,我关注该服务的所有动态服务
-				FocusMessage focusMessage = new FocusMessage(name, true);
-				notifyFocusMessage(address, focusMessage);
+				checkAndNotifyDynamic(name, address);
+				checkAndNotifySpecial(name, address);
 			} else {
 				remoteActorList.remove(actorShare);
 			}
 		}
+	}
+
+	/**
+	 * 检测并发送动态服务名到指定节点
+	 * @author NewYoung
+	 * 2017年6月15日下午4:19:40
+	 */
+	void checkAndNotifyDynamic(String name, Address address) {
+		if (!dynamicFactoryNames.contains(name)) {
+			return;
+		}
+		Set<String> dynamicFocusByName = dynamicFocus.stream()
+				.filter(e -> DynamicServiceUtils.isDynamicServiceAs(name, e)).collect(Collectors.toSet());
+		if (dynamicFocusByName.isEmpty()) {
+			return;
+		}
+		FocusMessage focusMessage = new FocusMessage(dynamicFocusByName, false);
+		notifyFocusMessage(address, focusMessage);
+	}
+
+	/**
+	 * 检测并发送特殊关注服务名到指定节点
+	 * @author NewYoung
+	 * 2017年6月15日下午4:20:57
+	 */
+	void checkAndNotifySpecial(String name, Address address) {
+		if (!specialFocus.contains(name)) {
+			return;
+		}
+		//告诉当前member,我关注该服务的所有动态服务
+		FocusMessage focusMessage = new FocusMessage(name, true);
+		notifyFocusMessage(address, focusMessage);
 	}
 
 	/**
@@ -280,14 +313,14 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		Address address = actor.path().address();
 		logger.debug("memeber {}  focus message   {}", address, msg);
 		MemberInformation inf = information(address);
-		String name = msg.getName();
+		Set<String> names = msg.getNames();
 		Predicate<ActorShare> p = null;
 		if (!msg.isWatchDynamic()) {
-			inf.getFocusSet().add(name);
-			p = a -> Objects.equals(a.getName(), name) && !a.isLocal();
+			inf.getFocusSet().addAll(names);
+			p = a -> names.contains(a.getName()) && !a.isLocal();
 		} else {
-			inf.getFocusSpecialSet().add(name);
-			p = a -> DynamicServiceUtils.isDynamicServiceAs(name, a.getName());
+			inf.getFocusSpecialSet().addAll(names);
+			p = a -> names.stream().anyMatch(n -> DynamicServiceUtils.isDynamicServiceAs(n, a.getName()));
 		}
 		ActorSelection as = remoteShareActorSelection(address);
 		//把当前所有该节点关注的name服务告诉给对方

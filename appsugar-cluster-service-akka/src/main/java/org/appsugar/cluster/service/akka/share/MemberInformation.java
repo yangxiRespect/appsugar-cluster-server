@@ -3,6 +3,7 @@ package org.appsugar.cluster.service.akka.share;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.appsugar.cluster.service.akka.domain.ActorShare;
@@ -27,6 +28,15 @@ public class MemberInformation {
 	 */
 	public boolean focusOn(String name) {
 		return focusSet.contains(name);
+	}
+
+	/**
+	 * 是否提供该服务
+	 * @author NewYoung
+	 * 2017年6月15日下午3:43:13
+	 */
+	public boolean supplyOn(String name) {
+		return shareActorList.stream().anyMatch(e -> Objects.equals(e.getName(), name));
 	}
 
 	/**

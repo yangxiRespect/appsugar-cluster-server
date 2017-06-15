@@ -1,6 +1,9 @@
 package org.appsugar.cluster.service.akka.domain;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * 关注消息
@@ -12,7 +15,7 @@ public class FocusMessage implements Serializable {
 	/**
 	 * 关注名称
 	 */
-	private String name;
+	private Set<String> names;
 	/**
 	 * 是否前置匹配
 	 */
@@ -23,21 +26,29 @@ public class FocusMessage implements Serializable {
 	}
 
 	public FocusMessage(String name) {
-		this(name, false);
+		this(new HashSet<>(Arrays.asList(name)));
 	}
 
 	public FocusMessage(String name, boolean watchDynamic) {
+		this(new HashSet<>(Arrays.asList(name)), watchDynamic);
+	}
+
+	public FocusMessage(Set<String> names) {
+		this(names, false);
+	}
+
+	public FocusMessage(Set<String> names, boolean watchDynamic) {
 		super();
-		this.name = name;
+		this.names = names;
 		this.watchDynamic = watchDynamic;
 	}
 
-	public String getName() {
-		return name;
+	public Set<String> getNames() {
+		return names;
 	}
 
-	public void setName(String name) {
-		this.name = name;
+	public void setNames(Set<String> names) {
+		this.names = names;
 	}
 
 	public boolean isWatchDynamic() {
@@ -50,9 +61,7 @@ public class FocusMessage implements Serializable {
 
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("FocusMessage [name=").append(name).append(", watchDynamic=").append(watchDynamic).append("]");
-		return builder.toString();
+		return "FocusMessage [names=" + names + ", watchDynamic=" + watchDynamic + "]";
 	}
 
 }
