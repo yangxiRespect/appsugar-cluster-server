@@ -4,7 +4,9 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Optional;
 
+import org.appsugar.cluster.examples.facade.GatewayFacade;
 import org.appsugar.cluster.examples.facade.HelloFacade;
+import org.appsugar.cluster.examples.facade.factory.GatewayFacadeFactory;
 import org.appsugar.cluster.examples.facade.impl.HelloFacadeImpl;
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
@@ -16,7 +18,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 public class Application {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		Config config = ConfigFactory.load();
 		Optional<Config> localConfig = loadConfig("./application.conf");
 		if (localConfig.isPresent()) {
@@ -26,10 +28,15 @@ public class Application {
 		DistributionRPCSystem system = new DistributionRPCSystemImpl(clusterSystem);
 		//注册一个服务
 		system.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloFacadeImpl())), HelloFacade.name);
-		//消费者依赖服务
+		//消费者依赖服务10000
 		system.require(HelloFacade.class); // or system.require(HelloFacade.name);
 		HelloFacade facade = system.serviceOf(HelloFacade.class);
 		facade.sayHello("hello").thenAccept(System.out::println);
+		//注册一个动态服务工厂
+		system.registerFactory(new GatewayFacadeFactory());
+		system.require(GatewayFacade.name);
+		Thread.sleep(2000);
+		system.serviceOfDynamic(GatewayFacade.class, "0").thenAccept(e -> e.tell("oo1", "hello oo1"));
 	}
 
 	public static Optional<Config> loadConfig(String file) {

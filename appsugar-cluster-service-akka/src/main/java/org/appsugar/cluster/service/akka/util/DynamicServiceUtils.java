@@ -14,11 +14,14 @@ public class DynamicServiceUtils {
 	 * 2017年3月23日下午4:41:31
 	 */
 	public static final String getDynamicServiceSequenceByName(String name, String serviceName) {
-		if (!isDynamicServiceAs(name, serviceName)) {
+		if (!serviceName.startsWith(name)) {
 			return null;
 		}
 		int theLastSeparateIndex = serviceName.lastIndexOf(name + "/");
-		return serviceName.substring(theLastSeparateIndex + 1);
+		if (theLastSeparateIndex == -1) {
+			return null;
+		}
+		return serviceName.substring(theLastSeparateIndex + 1 + name.length());
 	}
 
 	/**

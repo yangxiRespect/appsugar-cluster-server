@@ -1,10 +1,10 @@
 package org.appsugar.cluster.service.akka.share;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 
@@ -15,11 +15,13 @@ import org.appsugar.cluster.service.akka.domain.ActorShare;
  */
 public class MemberInformation {
 	/**节点所有共享服务列表**/
-	private List<ActorShare> shareActorList = new ArrayList<>();
+	private List<ActorShare> shareActorList = new LinkedList<>();
+	/**服务数映射**/
+	private Map<String, Integer> supplyMap = new ConcurrentHashMap<>();
 	/**节点所关心的服务**/
-	private Set<String> focusSet = new HashSet<>();
+	private Set<String> focusSet = ConcurrentHashMap.newKeySet();
 	/**节点所关心特殊服务**/
-	private Set<String> focusSpecialSet = new HashSet<>();
+	private Set<String> focusSpecialSet = ConcurrentHashMap.newKeySet();
 
 	/**
 	 * 是否关注该服务
@@ -36,7 +38,7 @@ public class MemberInformation {
 	 * 2017年6月15日下午3:43:13
 	 */
 	public boolean supplyOn(String name) {
-		return shareActorList.stream().anyMatch(e -> Objects.equals(e.getName(), name));
+		return supplyMap.getOrDefault(name, 0) > 0;
 	}
 
 	/**
@@ -58,6 +60,21 @@ public class MemberInformation {
 
 	public Set<String> getFocusSpecialSet() {
 		return focusSpecialSet;
+	}
+
+	public void addActorShare(ActorShare as) {
+		shareActorList.add(as);
+		adjust(as.getName(), 1);
+	}
+
+	public void removeActorShare(ActorShare as) {
+		shareActorList.remove(as);
+		adjust(as.getName(), -1);
+	}
+
+	void adjust(String name, int value) {
+		int oldValue = supplyMap.getOrDefault(name, 0);
+		supplyMap.put(name, oldValue + value);
 	}
 
 	@Override

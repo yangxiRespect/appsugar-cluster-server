@@ -37,5 +37,8 @@ public interface DynamicServiceFactory {
 	 * @author NewYoung
 	 * 2017年4月27日下午1:26:02
 	 */
-	public void init(DistributionRPCSystem system);
+	@SuppressWarnings("unused")
+	public default void init(DistributionRPCSystem system) {
+		//do nothing
+	}
 }

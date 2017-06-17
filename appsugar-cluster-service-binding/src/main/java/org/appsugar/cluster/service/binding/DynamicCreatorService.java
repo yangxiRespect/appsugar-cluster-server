@@ -206,10 +206,6 @@ public class DynamicCreatorService implements Service {
 			if (ref.isSameAddress(creator)) {
 				int oldValue = creator.getOrDefault(SERVICE_BALANCE_KEY, 0);
 				int newValue = oldValue + adjustment;
-				if (logger.isDebugEnabled()) {
-					logger.debug("dynamic service {} destination {} balance adjustment from {} to {}", name,
-							creator.hostPort(), oldValue, newValue);
-				}
 				creator.attach(SERVICE_BALANCE_KEY, newValue);
 			}
 		}

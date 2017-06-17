@@ -105,7 +105,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	 */
 	@Override
 	public void handle(List<ActorShare> actors, ClusterStatus status) {
-		logger.debug(" share actor event  status {} share {}", status, actors);
 		//通知本地监听器修改
 		try {
 			actorShareListener.handle(actors, status);
@@ -158,10 +157,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 				ClusterStatus.UP.equals(state) ? Status.ACTIVE : Status.INACTIVE));
 	}
 
-	protected List<ActorShare> getMemberActorShareList(Address address) {
-		return information(address).getShareActorList();
-	}
-
 	protected MemberInformation information(Address address) {
 		return MapUtils.getOrCreate(remoteActorRef, address, MemberInformation::new);
 	}
@@ -175,7 +170,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		if (!normalFocus.add(name)) {
 			return;
 		}
-		logger.debug("focus  service {}", name);
 		FocusMessage focusMessage = new FocusMessage(name, false);
 		//通知所有节点我关注这个服务
 		remoteActorRef.entrySet().stream().forEach(e -> notifyFocusMessage(e.getKey(), focusMessage));
@@ -188,7 +182,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		if (!dynamicFocus.add(realName)) {
 			return;
 		}
-		logger.debug("focus dynamic service {}", realName);
 		FocusMessage focusMessage = new FocusMessage(realName, false);
 		//通知服务名为name的所有节点. 我关注这个动态服务
 		remoteActorRef.entrySet().stream().filter(e -> e.getValue().supplyOn(name))
@@ -200,7 +193,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		if (!specialFocus.add(name)) {
 			return;
 		}
-		logger.debug("focus  special  service {}", name);
 		FocusMessage focusMessage = new FocusMessage(name, true);
 		//通知服务名为name的所有节点. 我关注所有name开头的动态服务
 		remoteActorRef.entrySet().stream().filter(e -> e.getValue().supplyOn(name))
@@ -226,13 +218,18 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			if (actorShare.isLocal()) {
 				return;
 			}
+			String specialName = DynamicServiceUtils.getDynamicServiceFirstName(name);
 			ActorClusterShareMessage msg = new ActorClusterShareMessage(status, new ActorShare(actorShare.getName()));
 			//通知关注该服务的member,我本地服务有变化啦
 			remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOn(name)).forEach(e -> {
+				if (Objects.nonNull(specialName)) {
+					if (e.getValue().focusOnSpecial(specialName)) {
+						return;
+					}
+				}
 				ActorSelection as = remoteShareActorSelection(e.getKey());
 				as.tell(msg, ref);
 			});
-			String specialName = DynamicServiceUtils.getDynamicServiceFirstName(name);
 			if (Objects.isNull(specialName)) {
 				return;
 			}
@@ -242,13 +239,13 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 				as.tell(msg, ref);
 			});
 		} else {
-			List<ActorShare> remoteActorList = getMemberActorShareList(address);
+			MemberInformation info = information(address);
 			if (ClusterStatus.UP.equals(status)) {
-				remoteActorList.add(actorShare);
+				info.addActorShare(actorShare);
 				checkAndNotifyDynamic(name, address);
 				checkAndNotifySpecial(name, address);
 			} else {
-				remoteActorList.remove(actorShare);
+				info.removeActorShare(actorShare);
 			}
 		}
 	}
@@ -311,7 +308,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	@Override
 	public void memberFocus(ActorRef actor, FocusMessage msg) {
 		Address address = actor.path().address();
-		logger.debug("memeber {}  focus message   {}", address, msg);
 		MemberInformation inf = information(address);
 		Set<String> names = msg.getNames();
 		Predicate<ActorShare> p = null;
