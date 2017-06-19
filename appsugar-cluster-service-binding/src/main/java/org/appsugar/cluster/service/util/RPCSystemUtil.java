@@ -241,7 +241,7 @@ public class RPCSystemUtil {
 		if (theLastSeparateIndex == -1) {
 			return null;
 		}
-		return serviceName.substring(theLastSeparateIndex + 1);
+		return serviceName.substring(theLastSeparateIndex + 1 + name.length());
 	}
 
 	/**
