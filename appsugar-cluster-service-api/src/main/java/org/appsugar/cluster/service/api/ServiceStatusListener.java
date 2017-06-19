@@ -1,5 +1,7 @@
 package org.appsugar.cluster.service.api;
 
+import java.util.List;
+
 import org.appsugar.cluster.service.domain.Status;
 
 /**
@@ -9,6 +11,6 @@ import org.appsugar.cluster.service.domain.Status;
  */
 public interface ServiceStatusListener {
 
-	public void handle(ServiceRef serviceRef, Status status);
+	public void handle(List<ServiceRef> serviceRef, Status status);
 
 }

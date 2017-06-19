@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.binding;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -72,6 +73,12 @@ public class DynamicCreatorService implements Service {
 			} else if (Objects.equals(CommandMessage.QUERY_DYNAMIC_SERVICE_COMMAND, cmd.getCmd())) {
 				String sequence = cmd.getCmd();
 				return createdServices.contains(sequence);
+			}
+		} else if (msg instanceof List) {
+			@SuppressWarnings("unchecked")
+			List<Object> list = (List<Object>) msg;
+			for (Object m : list) {
+				handle(m, context);
 			}
 		}
 		return null;

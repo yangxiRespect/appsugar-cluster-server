@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.appsugar.cluster.service.akka.domain.ActorShare;
@@ -88,26 +87,24 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 	}
 
 	void handleActorShare(List<ActorShare> actorShareList, ClusterStatus s) {
-		Consumer<ActorShare> consumer = null;
-		if (ClusterStatus.UP == s) {
-			consumer = ref -> {
+		List<ServiceRef> serviceRefs = new ArrayList<>(actorShareList.size());
+		for (ActorShare ref : actorShareList) {
+			if (ClusterStatus.UP == s) {
 				String shareName = ref.getName();
 				ActorRef actorRef = ref.getActorRef();
 				AkkaServiceRef akkaServiceRef = createServiceRef(actorRef, shareName);
 				actorRefMapping.put(actorRef, akkaServiceRef);
 				getAndCreateServiceClusterRef(shareName).addServiceRef(akkaServiceRef);
-				notifyServiceStatusListener(akkaServiceRef, Status.ACTIVE);
-			};
-		} else {
-			consumer = ref -> {
+				serviceRefs.add(akkaServiceRef);
+			} else {
 				AkkaServiceClusterRef clusterRef = serviceClusterRefs.get(ref.getName());
 				AkkaServiceRef serviceRef = actorRefMapping.remove(ref.getActorRef());
 				clusterRef.removeServiceRef(serviceRef);
 				system.stop(serviceRef.askPatternActorRef());
-				notifyServiceStatusListener(serviceRef, Status.INACTIVE);
-			};
+				serviceRefs.add(serviceRef);
+			}
 		}
-		actorShareList.stream().forEach(consumer);
+		notifyServiceStatusListener(serviceRefs, ClusterStatus.UP == s ? Status.ACTIVE : Status.INACTIVE);
 	}
 
 	/**
@@ -216,7 +213,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 		return ref;
 	}
 
-	private void notifyServiceStatusListener(ServiceRef ref, Status status) {
+	private void notifyServiceStatusListener(List<ServiceRef> ref, Status status) {
 		for (ServiceStatusListener listener : serviceStatusListenerSet) {
 			try {
 				listener.handle(ref, status);

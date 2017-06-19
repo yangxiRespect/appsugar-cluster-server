@@ -3,9 +3,11 @@ package org.appsugar.cluster.service.binding;
 import static org.appsugar.cluster.service.util.CompletableFutureUtil.exceptionally;
 
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -42,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * @author NewYoung
  * 2016年6月4日上午1:10:43
  */
-public class DistributionRPCSystemImpl implements DistributionRPCSystem, ServiceListener {
+public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 	private static final Logger logger = LoggerFactory.getLogger(DistributionRPCSystemImpl.class);
 	private ServiceClusterSystem system;
 	private Set<ServiceListener> serviceListeners = new CopyOnWriteArraySet<>();
@@ -50,8 +52,6 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	private Map<String, Map<Class<?>, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
 	/**本地服务引用**/
 	protected Map<String, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
-	/**服务数**/
-	protected Map<String, Integer> serviceStatus = new ConcurrentHashMap<>();
 	/**询问过的动态服务**/
 	protected Set<String> askedDynamicService = ConcurrentHashMap.newKeySet();
 
@@ -59,20 +59,22 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 		super();
 		this.system = system;
 		system.addServiceStatusListener(this::handleServiceStatus);
-		addServiceListener(this);
 	}
 
-	void handleServiceStatus(ServiceRef ref, Status status) {
-		String name = ref.name();
-		Integer oldCount = serviceStatus.get(name);
-		oldCount = oldCount == null ? 0 : oldCount;
-		int count = oldCount + (Status.ACTIVE.equals(status) ? 1 : -1);
-		serviceStatus.put(name, count);
-		//只在存在一个服务,和失去所有服务时才调用
-		if (count > 1) {
-			return;
+	void handleServiceStatus(List<ServiceRef> refs, Status status) {
+		List<ServiceStatusMessage> msgs = new ArrayList<>(refs.size());
+		for (ServiceRef ref : refs) {
+			ServiceStatusMessage msg = new ServiceStatusMessage(ref, status);
+			if (Status.INACTIVE.equals(status)) {
+				//动态服务需要移除,避免某些情况下无法创建动态服务
+				dynamicProxyCache.remove(ref.name());
+			}
+			msgs.add(msg);
+			notifyServiceListener(ref, status);
 		}
-		notifyServiceListener(ref, status);
+		for (ServiceRef serviceRef : serviceRefs.values()) {
+			serviceRef.tell(msgs, ServiceRef.NO_SENDER);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -231,24 +233,11 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem, Service
 	}
 
 	@Override
-	public void handle(ServiceRef ref, Status status) {
-		ServiceStatusMessage msg = new ServiceStatusMessage(ref, status);
-		if (Status.INACTIVE.equals(status)) {
-			//动态服务需要移除,避免某些情况下无法创建动态服务
-			dynamicProxyCache.remove(ref.name());
-		}
-		for (ServiceRef serviceRef : serviceRefs.values()) {
-			serviceRef.tell(msg, ServiceRef.NO_SENDER);
-		}
-	}
-
-	@Override
 	public void terminate() {
 		system.terminate();
 		serviceRefs.clear();
 		serviceListeners.clear();
 		proxyCache.clear();
-		serviceStatus.clear();
 		dynamicProxyCache.clear();
 	}
 

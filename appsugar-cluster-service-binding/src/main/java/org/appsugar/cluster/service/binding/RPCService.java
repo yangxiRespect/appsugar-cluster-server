@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.appsugar.cluster.service.api.Service;
+import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.domain.CommandMessage;
@@ -79,6 +81,14 @@ public class RPCService implements Service {
 		else if (msg instanceof CommandMessage) {
 			return processCommandMessage((CommandMessage) msg, context);
 		}
+		//处理批处理消息
+		else if (msg instanceof List) {
+			@SuppressWarnings("unchecked")
+			List<Object> list = (List<Object>) msg;
+			for (Object m : list) {
+				handle(m, context);
+			}
+		}
 		return null;
 	}
 
@@ -89,6 +99,11 @@ public class RPCService implements Service {
 		String name = msg.getServiceRef().name();
 		List<ServiceStatusHelper> helperList = serviceReadyInvokerMap.get(name);
 		if (helperList == null) {
+			return;
+		}
+		ServiceClusterRef clusterRef = system.serviceOf(name);
+		if (clusterRef != null && clusterRef.size() > 1) {
+			//服务数大于1，不做任何处理
 			return;
 		}
 		Status status = msg.getStatus();
@@ -157,9 +172,10 @@ public class RPCService implements Service {
 			optimizingMethodInvokerMap.put(invokerSequence, invoker);
 		}
 		Integer finalSequence = invokerSequence;
-		if (result instanceof CompletableFuture) {
+		if (result instanceof CompletionStage) {
 			CompletableFuture<MethodInvokeOptimizingResponse> future = new CompletableFuture<>();
-			CompletableFuture<Object> f = (CompletableFuture<Object>) result;
+			@SuppressWarnings("unchecked")
+			CompletionStage<Object> f = (CompletionStage<Object>) result;
 			f.whenComplete((r, e) -> {
 				if (e != null) {
 					//如果出现异常,不进行方法调用优化.
@@ -241,7 +257,7 @@ public class RPCService implements Service {
 		rpcSystem.serviceRefs.entrySet().stream().forEach(e -> {
 			try {
 				handle(new ServiceStatusMessage(e.getValue(), Status.ACTIVE), context);
-			} catch (Throwable ex) {
+			} catch (@SuppressWarnings("unused") Throwable ex) {
 			}
 		});
 		//处理关闭方法
