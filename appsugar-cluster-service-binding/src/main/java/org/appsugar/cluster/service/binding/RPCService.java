@@ -254,9 +254,9 @@ public class RPCService implements Service {
 			}
 		});
 		//处理已准备服务
-		rpcSystem.serviceRefs.entrySet().stream().forEach(e -> {
+		rpcSystem.serviceRefs.stream().forEach(e -> {
 			try {
-				handle(new ServiceStatusMessage(e.getValue(), Status.ACTIVE), context);
+				handle(new ServiceStatusMessage(e, Status.ACTIVE), context);
 			} catch (@SuppressWarnings("unused") Throwable ex) {
 			}
 		});

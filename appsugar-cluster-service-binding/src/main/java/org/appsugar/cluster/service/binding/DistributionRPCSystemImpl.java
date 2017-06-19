@@ -51,7 +51,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 	private Map<Object, Object> proxyCache = new ConcurrentHashMap<>();
 	private Map<String, Map<Class<?>, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
 	/**本地服务引用**/
-	protected Map<String, ServiceRef> serviceRefs = new ConcurrentHashMap<>();
+	protected Set<ServiceRef> serviceRefs = ConcurrentHashMap.newKeySet();
 	/**询问过的动态服务**/
 	protected Set<String> askedDynamicService = ConcurrentHashMap.newKeySet();
 
@@ -69,10 +69,17 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 				//动态服务需要移除,避免某些情况下无法创建动态服务
 				dynamicProxyCache.remove(ref.name());
 			}
+			if (ref.hasLocalScope()) {
+				if (Status.ACTIVE.equals(status)) {
+					serviceRefs.add(ref);
+				} else {
+					serviceRefs.remove(ref);
+				}
+			}
 			msgs.add(msg);
 			notifyServiceListener(ref, status);
 		}
-		for (ServiceRef serviceRef : serviceRefs.values()) {
+		for (ServiceRef serviceRef : serviceRefs) {
 			serviceRef.tell(msgs, ServiceRef.NO_SENDER);
 		}
 	}
@@ -185,7 +192,6 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 		Service service = new RPCService(system, this, servesMap);
 		return RPCSystemUtil.wrapContextFuture(system.serviceForAsync(service, name, descriptor.isLocal()))
 				.thenApply(r -> {
-					serviceRefs.put(name, r);
 					r.tell(RepeatMessage.instance, ServiceRef.NO_SENDER);
 					return null;
 				});
@@ -227,7 +233,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 			try {
 				l.handle(ref, s);
 			} catch (Throwable e) {
-				logger.error("notify service listener error", e);
+				logger.error("notify service lisserviceRefstener error", e);
 			}
 		}
 	}
@@ -245,8 +251,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 	public void registerFactory(DynamicServiceFactory factory) {
 		String name = factory.name();
 		Service service = new DynamicCreatorService(factory, system, this, name);
-		ServiceRef serviceRef = system.serviceFor(service, name, factory.local());
-		serviceRefs.put(serviceRef.name(), serviceRef);
+		system.serviceFor(service, name, factory.local());
 		factory.init(this);
 		system.focusNormalService(name);
 		system.focusSpecial(name);
@@ -261,7 +266,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 
 	@Override
 	public Collection<ServiceRef> serviceRefs() {
-		return Collections.unmodifiableCollection(serviceRefs.values());
+		return Collections.unmodifiableCollection(serviceRefs);
 	}
 
 	@Override
