@@ -1,6 +1,7 @@
 package org.appsugar.cluster.service.binding.spring;
 
 import java.io.File;
+import java.util.Objects;
 
 import org.appsugar.cluster.service.akka.system.AkkaServiceClusterSystem;
 import org.appsugar.cluster.service.api.DistributionRPCSystem;
@@ -8,6 +9,8 @@ import org.appsugar.cluster.service.binding.DistributionRPCSystemImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -27,6 +30,8 @@ public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPC
 
 	private String name;
 
+	private Environment env;
+
 	protected DistributionRPCSystem create() {
 		Config config = ConfigFactory.load();
 		if (configs != null) {
@@ -43,6 +48,11 @@ public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPC
 					logger.warn("akka config resource not found {} ", resource, ex);
 				}
 			}
+		}
+		String seedNodes = env.getProperty("akka.cluster.seed-nodes");
+		if (Objects.nonNull(seedNodes)) {
+			logger.debug("set seed nodes from spring cloud config {}", seedNodes);
+			config = ConfigFactory.parseString("akka.cluster.seed-nodes=" + seedNodes).withFallback(config);
 		}
 		system = new DistributionRPCSystemImpl(new AkkaServiceClusterSystem(name, config));
 		return system;
@@ -84,6 +94,15 @@ public class DistributionRPCSystemCreator implements FactoryBean<DistributionRPC
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Environment getEnv() {
+		return env;
+	}
+
+	@Autowired
+	public void setEnv(Environment env) {
+		this.env = env;
 	}
 
 }
