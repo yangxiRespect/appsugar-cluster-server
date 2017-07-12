@@ -93,6 +93,9 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, StatusLis
 					return;
 				}
 				AkkaServiceRef serviceRef = actorRefMapping.remove(ref.getActorRef());
+				if (Objects.isNull(serviceRef)) {
+					return;
+				}
 				clusterRef.removeServiceRef(serviceRef);
 				system.stop(serviceRef.askPatternActorRef());
 				notifyServiceStatusListener(serviceRef, Status.INACTIVE);
