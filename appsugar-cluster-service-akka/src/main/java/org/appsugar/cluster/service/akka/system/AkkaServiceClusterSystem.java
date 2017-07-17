@@ -98,7 +98,13 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 				serviceRefs.add(akkaServiceRef);
 			} else {
 				AkkaServiceClusterRef clusterRef = serviceClusterRefs.get(ref.getName());
+				if (clusterRef == null) {
+					return;
+				}
 				AkkaServiceRef serviceRef = actorRefMapping.remove(ref.getActorRef());
+				if (serviceRef == null) {
+					return;
+				}
 				clusterRef.removeServiceRef(serviceRef);
 				system.stop(serviceRef.askPatternActorRef());
 				serviceRefs.add(serviceRef);
