@@ -43,7 +43,7 @@ public class AkkaServiceClusterSystemTest extends TestCase {
 		ServiceRef routerRef = system.serviceFor(new RouterHelloService(serviceRef), "router");
 		routerRef.tell("123", ServiceRef.NO_SENDER);
 		system.stop(serviceRef);
-		Thread.sleep(1000);
+		Thread.sleep(100000);
 		Assert.assertEquals(clusterRef.size(), 1);
 	}
 

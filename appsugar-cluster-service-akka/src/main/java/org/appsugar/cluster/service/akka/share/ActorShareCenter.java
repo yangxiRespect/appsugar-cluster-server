@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.akka.share;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +13,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 
 import org.appsugar.cluster.service.akka.domain.ActorClusterShareMessage;
 import org.appsugar.cluster.service.akka.domain.ActorShare;
@@ -77,6 +82,15 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		shareCollectorRef = system.actorOf(Props.create(ActorShareCollector.class, this, this),
 				ACTOR_SHARE_COLLECTOR_NAME);
 		this.selfAddress = Cluster.get(system).selfAddress();
+		//register to mbean mangement
+		MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+		try {
+			ObjectName name = new ObjectName("org.appsugar.cluster.service.akka.share:type=ActorShareCenter");
+			StandardMBean mbean = new StandardMBean(this, Focusable.class);
+			server.registerMBean(mbean, name);
+		} catch (Exception e) {
+			logger.warn("register mbean error ", e);
+		}
 	}
 
 	/**
