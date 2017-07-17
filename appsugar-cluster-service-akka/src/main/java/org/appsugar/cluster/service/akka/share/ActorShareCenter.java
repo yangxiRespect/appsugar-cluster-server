@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.akka.share;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +9,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 
 import org.appsugar.cluster.service.akka.domain.ActorClusterShareMessage;
 import org.appsugar.cluster.service.akka.domain.ActorShare;
@@ -34,7 +40,7 @@ import akka.cluster.Member;
  * @author NewYoung
  * 2016年5月27日下午4:31:49
  */
-public class ActorShareCenter implements ClusterMemberListener, ActorShareListener {
+public class ActorShareCenter implements ClusterMemberListener, ActorShareListener, ActorShareMBean {
 
 	public static final String ACTOR_SHARE_COLLECTOR_NAME = "cluster_share";
 	public static final String ACTOR_SHARE_COLLECTOR_PATH = "/user/" + ACTOR_SHARE_COLLECTOR_NAME;
@@ -56,6 +62,15 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		this.actorShareListener = actorShareListener;
 		shareCollectorRef = system.actorOf(Props.create(ActorShareCollector.class, this, this),
 				ACTOR_SHARE_COLLECTOR_NAME);
+		//register to mbean mangement
+		MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+		try {
+			ObjectName name = new ObjectName("org.appsugar.cluster.service.akka.share:type=ActorShareCenter");
+			StandardMBean mbean = new StandardMBean(this, ActorShareMBean.class);
+			server.registerMBean(mbean, name);
+		} catch (Exception e) {
+			logger.warn("register mbean error ", e);
+		}
 	}
 
 	/**
@@ -167,5 +182,20 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 
 	public Set<Member> members() {
 		return members;
+	}
+
+	@Override
+	public Set<String> provideServices() {
+		return localActorRefList.stream().map(ActorShare::getName).collect(Collectors.toSet());
+	}
+
+	@Override
+	public Set<String> memberShareService() {
+		return remoteActorRef.entrySet().stream().flatMap(e -> {
+			Address key = e.getKey();
+			List<ActorShare> value = e.getValue();
+			String memberAddress = key.toString();
+			return value.stream().map(a -> memberAddress + ":" + a.getName());
+		}).collect(Collectors.toSet());
 	}
 }
