@@ -4,4 +4,4 @@ include("appsugar-cluster-service-api")
 include("appsugar-cluster-service-akka")
 include("appsugar-cluster-service-binding")
 include("appsugar-cluster-service-binding-spring")
-
+include("appsugar-cluster-service-examples")
