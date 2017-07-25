@@ -117,6 +117,7 @@ public class AkkaServiceClusterRef implements ServiceClusterRef {
 	void removeServiceRef(AkkaServiceRef ref) {
 		serviceRefList.remove(ref);
 		if (serviceRefList.isEmpty()) {
+			min = null;
 			return;
 		}
 		if (ref == min) {
