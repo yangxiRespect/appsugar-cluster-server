@@ -89,7 +89,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			StandardMBean mbean = new StandardMBean(this, Focusable.class);
 			server.registerMBean(mbean, name);
 		} catch (Exception e) {
-			logger.warn("register mbean error ", e);
+			logger.warn("register mbean error ", e.getMessage());
 		}
 	}
 

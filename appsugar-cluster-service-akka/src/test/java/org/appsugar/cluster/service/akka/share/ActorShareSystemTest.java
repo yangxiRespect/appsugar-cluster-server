@@ -27,6 +27,7 @@ public class ActorShareSystemTest extends TestCase {
 		}, (x, y) -> {
 		});
 		ActorRef ref = system.actorOf(Props.create(TestActor.class), "xx");
+		System.out.println(ref.path().toStringWithoutAddress());
 		CompletableFuture<Void> result = shareSystem.share(ref, "xx");
 		result.get();
 		system.terminate();

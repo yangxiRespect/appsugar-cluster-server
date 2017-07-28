@@ -81,7 +81,7 @@ public class DistributionRPCSystemTest extends TestCase {
 		Thread.sleep(3000);
 		String sayHello = hello.asyncSayHello().get();
 		System.out.println("sayHello " + sayHello);
-		Thread.sleep(2000);
+		Thread.sleep(12000);
 		s.terminate();
 		system.terminate();
 	}
@@ -180,6 +180,7 @@ class HelloImpl implements Hello {
 	@ExecuteRepeat(3000)
 	public void repeat() {
 		//3秒执行一次
+		System.out.println("repeat ............");
 	}
 
 }
