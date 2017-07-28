@@ -334,6 +334,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		}
 		ActorSelection as = remoteShareActorSelection(address);
 		//把当前所有该节点关注的name服务告诉给对方
+		//TODO 收集所有数据， 一次告知对方。 提高性能（尤其是动态服务下）
 		localActorRefList.stream().filter(p).forEach(e -> as
 				.tell(new ActorClusterShareMessage(ClusterStatus.UP, new ActorShare(e.getName())), e.getActorRef()));
 	}

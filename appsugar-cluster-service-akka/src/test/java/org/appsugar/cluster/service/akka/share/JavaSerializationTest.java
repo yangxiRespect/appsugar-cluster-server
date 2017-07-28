@@ -18,7 +18,6 @@ import junit.framework.TestCase;
 public class JavaSerializationTest extends TestCase implements Serializable {
 	public static final String dataFile = "c:/work/a.dat";
 	private String name = "1";
-	private int a = 1;
 	private double b = 2;
 	private long c = 3;
 

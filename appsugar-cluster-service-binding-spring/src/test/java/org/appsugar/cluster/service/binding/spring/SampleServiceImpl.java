@@ -19,8 +19,8 @@ public class SampleServiceImpl implements SampleService {
 	}
 
 	@ExecuteOnServiceReady
-	public void productService(ProductService productService, Status status) {
-		this.productService = productService;
+	public void productService(ProductService p, Status status) {
+		this.productService = p;
 	}
 
 }

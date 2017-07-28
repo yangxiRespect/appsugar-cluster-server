@@ -80,6 +80,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 			notifyServiceListener(ref, status);
 		}
 		for (ServiceRef serviceRef : serviceRefs) {
+			//TODO Only told who care this service, Make performance better
 			serviceRef.tell(msgs, ServiceRef.NO_SENDER);
 		}
 	}
