@@ -75,10 +75,10 @@ public class DistributionRPCSystemAutoConfiguration
 	}
 
 	@Bean
-	public DistributionRPCSystem distributionRPCSystem(Environment env) throws Exception {
+	public DistributionRPCSystem distributionRPCSystem(Environment e) throws Exception {
 		DistributionRPCSystemCreator creator = new DistributionRPCSystemCreator();
-		creator.setConfigs(env.getProperty(DISTRIBUTION_RPC_SYSTEM_CONFIG_KEY, "application.conf"));
-		creator.setName(env.getProperty(DISTRIBUTION_RPC_SYSTEM_NAME_KEY, "c"));
+		creator.setConfigs(e.getProperty(DISTRIBUTION_RPC_SYSTEM_CONFIG_KEY, "application.conf"));
+		creator.setName(e.getProperty(DISTRIBUTION_RPC_SYSTEM_NAME_KEY, "c"));
 		return creator.getObject();
 	}
 
