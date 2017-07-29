@@ -1,5 +1,6 @@
 package org.appsugar.cluster.service.api;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -57,4 +58,10 @@ public interface Focusable {
 	 * 2017年5月26日下午3:37:09
 	 */
 	public Set<String> supplys();
+
+	/**返回我所见节点**/
+	public Set<String> memberSet();
+
+	/**返回节点所提供服务**/
+	public List<String> memberServices();
 }

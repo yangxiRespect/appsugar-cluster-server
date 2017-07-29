@@ -361,4 +361,14 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 		return akkaServiceRef;
 	}
 
+	@Override
+	public Set<String> memberSet() {
+		return actorShareSystem.actorShareCenter().memberSet();
+	}
+
+	@Override
+	public List<String> memberServices() {
+		return actorShareSystem.actorShareCenter().memberServices();
+	}
+
 }

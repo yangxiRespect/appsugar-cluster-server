@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Function;
 
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 	private static final Logger logger = LoggerFactory.getLogger(DistributionRPCSystemImpl.class);
-	private ServiceClusterSystem system;
+	protected ServiceClusterSystem system;
 	private Set<ServiceListener> serviceListeners = new CopyOnWriteArraySet<>();
 	private Map<Object, Object> proxyCache = new ConcurrentHashMap<>();
 	private Map<String, Map<Class<?>, Object>> dynamicProxyCache = new ConcurrentHashMap<>();
@@ -54,6 +55,8 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 	protected Set<ServiceRef> serviceRefs = ConcurrentHashMap.newKeySet();
 	/**询问过的动态服务**/
 	protected Set<String> askedDynamicService = ConcurrentHashMap.newKeySet();
+
+	protected Map<String, List<ServiceRef>> serviceStatusFocusMap = new ConcurrentHashMap<>();
 
 	public DistributionRPCSystemImpl(ServiceClusterSystem system) {
 		super();
@@ -79,9 +82,17 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 			msgs.add(msg);
 			notifyServiceListener(ref, status);
 		}
-		for (ServiceRef serviceRef : serviceRefs) {
-			//TODO Only told who care this service, Make performance better
-			serviceRef.tell(msgs, ServiceRef.NO_SENDER);
+		for (ServiceStatusMessage msg : msgs) {
+			String name = msg.getServiceRef().name();
+			String firstName = DynamicServiceUtils.getDynamicServiceFirstName(name);
+			if (!Objects.isNull(firstName)) {
+				name = firstName;
+			}
+			List<ServiceRef> focusRefs = getServiceRefFocusOn(name);
+			if (Objects.isNull(focusRefs)) {
+				continue;
+			}
+			focusRefs.forEach(e -> e.tell(msg, ServiceRef.NO_SENDER));
 		}
 	}
 
@@ -190,9 +201,10 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 			Class<?> interfaceClass = RPCSystemUtil.getServiceClass(serve);
 			servesMap.put(interfaceClass, serve);
 		}
-		Service service = new RPCService(system, this, servesMap);
+		RPCService service = new RPCService(system, this, servesMap);
 		return RPCSystemUtil.wrapContextFuture(system.serviceForAsync(service, name, descriptor.isLocal()))
 				.thenApply(r -> {
+					service.self = r;
 					r.tell(RepeatMessage.instance, ServiceRef.NO_SENDER);
 					return null;
 				});
@@ -252,7 +264,9 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 	public void registerFactory(DynamicServiceFactory factory) {
 		String name = factory.name();
 		Service service = new DynamicCreatorService(factory, system, this, name);
-		system.serviceFor(service, name, factory.local());
+		ServiceRef ref = system.serviceFor(service, name, factory.local());
+		//动态服务，关注动态服务事件
+		getServiceRefAndCreateFocusOn(name).add(ref);
 		factory.init(this);
 		system.focusNormalService(name);
 		system.focusSpecial(name);
@@ -320,5 +334,18 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 			dynamicProxyCache.putIfAbsent(dynamicServiceName, serviceProxyCache);
 		}
 		return serviceProxyCache;
+	}
+
+	List<ServiceRef> getServiceRefFocusOn(String name) {
+		return serviceStatusFocusMap.get(name);
+	}
+
+	List<ServiceRef> getServiceRefAndCreateFocusOn(String name) {
+		List<ServiceRef> result = serviceStatusFocusMap.get(name);
+		if (result == null) {
+			serviceStatusFocusMap.putIfAbsent(name, new CopyOnWriteArrayList<>());
+			result = serviceStatusFocusMap.get(name);
+		}
+		return result;
 	}
 }

@@ -124,8 +124,9 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		try {
 			actorShareListener.handle(actors, status);
 		} finally {
-			ActorShare actorShare = actors.get(0);
-			processActorShare(actorShare, status);
+			for (ActorShare actor : actors) {
+				processActorShare(actor, status);
+			}
 		}
 	}
 
@@ -336,7 +337,6 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		}
 		ActorSelection as = remoteShareActorSelection(address);
 		//把当前所有该节点关注的name服务告诉给对方
-		//TODO 收集所有数据， 一次告知对方。 提高性能（尤其是动态服务下）
 		List<ActorClusterShareMessage> batchMessage = localActorRefList.stream().filter(p)
 				.map(e -> new ActorClusterShareMessage(ClusterStatus.UP, e.getName(),
 						Serialization.serializedActorPath(e.getActorRef())))
@@ -366,5 +366,19 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 
 	private <T> Set<T> unmodifySet(Set<T> orignal) {
 		return Collections.unmodifiableSet(orignal);
+	}
+
+	@Override
+	public List<String> memberServices() {
+		return remoteActorRef.entrySet().stream().map(e -> {
+			Address address = e.getKey();
+			return address.toString()
+					+ (e.getValue().getShareActorList().stream().map(ActorShare::getName).collect(Collectors.toList()));
+		}).collect(Collectors.toList());
+	}
+
+	@Override
+	public Set<String> memberSet() {
+		return members.stream().map(e -> e.address().toString()).collect(Collectors.toSet());
 	}
 }

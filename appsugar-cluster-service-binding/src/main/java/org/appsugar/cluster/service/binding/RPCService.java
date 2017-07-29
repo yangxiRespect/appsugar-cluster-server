@@ -11,6 +11,7 @@ import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
+import org.appsugar.cluster.service.api.ServiceRef;
 import org.appsugar.cluster.service.domain.CommandMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeOptimizingMessage;
@@ -43,6 +44,7 @@ public class RPCService implements Service {
 	private int sequence = 0;
 	private boolean needInit = false;
 	private boolean stopped = false;
+	ServiceRef self;
 
 	public RPCService(ServiceClusterSystem system, DistributionRPCSystemImpl rpcSystem, Map<Class<?>, ?> serves) {
 		super();
@@ -253,13 +255,19 @@ public class RPCService implements Service {
 				logger.warn("execute default method error ", e);
 			}
 		});
+		//关注服务动态
+		serviceReadyInvokerMap.entrySet().forEach(e -> rpcSystem.getServiceRefAndCreateFocusOn(e.getKey()).add(self));
 		//处理已准备服务
-		rpcSystem.serviceRefs.stream().forEach(e -> {
+		for (String serviceName : serviceReadyInvokerMap.keySet()) {
+			ServiceClusterRef refs = rpcSystem.system.serviceOf(serviceName);
+			if (refs == null || refs.size() == 0) {
+				continue;
+			}
 			try {
-				handle(new ServiceStatusMessage(e, Status.ACTIVE), context);
+				handle(new ServiceStatusMessage(refs.one(), Status.ACTIVE), context);
 			} catch (@SuppressWarnings("unused") Throwable ex) {
 			}
-		});
+		}
 		//处理关闭方法
 		closeInvoker = RPCSystemUtil.getCloseInvoker(serves);
 	}
