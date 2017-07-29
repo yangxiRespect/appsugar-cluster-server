@@ -14,6 +14,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.serialization.Serialization;
 import junit.framework.TestCase;
 
 public class ActorShareSystemTest extends TestCase {
@@ -27,7 +28,9 @@ public class ActorShareSystemTest extends TestCase {
 		}, (x, y) -> {
 		});
 		ActorRef ref = system.actorOf(Props.create(TestActor.class), "xx");
-		System.out.println(ref.path().toStringWithoutAddress());
+		String sref = Serialization.serializedActorPath(ref);
+		System.out.println("actor serialization is : " + sref);
+		System.out.println(system.provider().resolveActorRef(sref));
 		CompletableFuture<Void> result = shareSystem.share(ref, "xx");
 		result.get();
 		system.terminate();

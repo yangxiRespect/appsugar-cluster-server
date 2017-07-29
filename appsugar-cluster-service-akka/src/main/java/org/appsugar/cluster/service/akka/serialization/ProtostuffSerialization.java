@@ -91,7 +91,8 @@ public class ProtostuffSerialization extends JSerializer {
 				} else if (Map.class.isAssignableFrom(clazz)) {
 					registry.registerMap(MapSchema.MessageFactories.getFactory(key), id);
 				} else if (Collection.class.isAssignableFrom(clazz)) {
-					registry.registerCollection(CollectionSchema.MessageFactories.getFactory(key), id);
+					registry.registerCollection(CollectionSchema.MessageFactories.getFactory(clazz.getSimpleName()),
+							id);
 				} else {
 					registry.registerPojo(clazz, id);
 				}

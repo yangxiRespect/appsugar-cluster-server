@@ -39,6 +39,7 @@ import akka.actor.Address;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.Member;
+import akka.serialization.Serialization;
 
 /**
  * actor共享中心
@@ -233,7 +234,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 				return;
 			}
 			String specialName = DynamicServiceUtils.getDynamicServiceFirstName(name);
-			ActorClusterShareMessage msg = new ActorClusterShareMessage(status, new ActorShare(actorShare.getName()));
+			ActorClusterShareMessage msg = new ActorClusterShareMessage(status, name,
+					Serialization.serializedActorPath(ref));
 			//通知关注该服务的member,我本地服务有变化啦
 			remoteActorRef.entrySet().stream().filter(e -> e.getValue().focusOn(name)).forEach(e -> {
 				if (Objects.nonNull(specialName)) {
@@ -335,8 +337,11 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 		ActorSelection as = remoteShareActorSelection(address);
 		//把当前所有该节点关注的name服务告诉给对方
 		//TODO 收集所有数据， 一次告知对方。 提高性能（尤其是动态服务下）
-		localActorRefList.stream().filter(p).forEach(e -> as
-				.tell(new ActorClusterShareMessage(ClusterStatus.UP, new ActorShare(e.getName())), e.getActorRef()));
+		List<ActorClusterShareMessage> batchMessage = localActorRefList.stream().filter(p)
+				.map(e -> new ActorClusterShareMessage(ClusterStatus.UP, e.getName(),
+						Serialization.serializedActorPath(e.getActorRef())))
+				.collect(Collectors.toList());
+		as.tell(batchMessage, shareCollectorRef);
 	}
 
 	@Override

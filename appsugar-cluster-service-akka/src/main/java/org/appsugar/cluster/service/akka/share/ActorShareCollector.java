@@ -79,45 +79,57 @@ public class ActorShareCollector extends AbstractActor {
 	public Receive createReceive() {
 		return receiveBuilder().matchAny(msg -> {
 			try {
-				//处理集群节点事件
-				if (msg instanceof MemberUp) {
-					memberListener.handle(((MemberUp) msg).member(), ClusterStatus.UP);
-				} else if (msg instanceof MemberRemoved) {
-					Member member = ((MemberRemoved) msg).member();
-					memberListener.handle(member, ClusterStatus.DOWN);
-				} else if (msg instanceof UnreachableMember) {
-					Member member = ((UnreachableMember) msg).member();
-					memberListener.handle(member, ClusterStatus.DOWN);
-					if (autoDown) {
-						whenMemberDown(member);
-					}
-				} else if (msg instanceof ReachableMember) {
-					memberListener.handle(((ReachableMember) msg).member(), ClusterStatus.UP);
-				}
-				//处理共享actor消息
-				else if (msg instanceof ActorClusterShareMessage) {
-					ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;
-					shareMessage.getShare().setActorRef(sender());
-					actorShareListener.handle(Arrays.asList(shareMessage.getShare()), shareMessage.getStatus());
-				}
-				//处理服务关注消息
-				else if (msg instanceof FocusMessage) {
-					actorShareListener.memberFocus(sender(), (FocusMessage) msg);
-				}
-				//处理本地共享消息
-				else if (msg instanceof LocalShareMessage) {
-					processLocalShareMessage((LocalShareMessage) msg);
-				} //处理本地共享actor关闭事件
-				else if (msg instanceof Terminated) {
-					ActorRef ref = sender();
-					getContext().unwatch(ref);
-					ActorShare actorShare = localShareMapping.remove(ref);
-					actorShareListener.handle(Arrays.asList(actorShare), ClusterStatus.DOWN);
-				}
+				processMessage(msg);
 			} catch (Throwable ex) {
 				logger.error("process akka cluster member event error {}", ex);
 			}
 		}).build();
+	}
+
+	void processMessage(Object msg) throws Throwable {
+		//处理集群节点事件
+		if (msg instanceof MemberUp) {
+			memberListener.handle(((MemberUp) msg).member(), ClusterStatus.UP);
+		} else if (msg instanceof MemberRemoved) {
+			Member member = ((MemberRemoved) msg).member();
+			memberListener.handle(member, ClusterStatus.DOWN);
+		} else if (msg instanceof UnreachableMember) {
+			Member member = ((UnreachableMember) msg).member();
+			memberListener.handle(member, ClusterStatus.DOWN);
+			if (autoDown) {
+				whenMemberDown(member);
+			}
+		} else if (msg instanceof ReachableMember) {
+			memberListener.handle(((ReachableMember) msg).member(), ClusterStatus.UP);
+		}
+		//处理共享actor消息
+		else if (msg instanceof ActorClusterShareMessage) {
+			ActorClusterShareMessage shareMessage = (ActorClusterShareMessage) msg;
+			ActorShare share = new ActorShare();
+			share.setName(shareMessage.getName());
+			share.setActorRef(context().provider().resolveActorRef(shareMessage.getRef()));
+			actorShareListener.handle(Arrays.asList(share), shareMessage.getStatus());
+		}
+		//处理服务关注消息
+		else if (msg instanceof FocusMessage) {
+			actorShareListener.memberFocus(sender(), (FocusMessage) msg);
+		}
+		//处理本地共享消息
+		else if (msg instanceof LocalShareMessage) {
+			processLocalShareMessage((LocalShareMessage) msg);
+		} //处理本地共享actor关闭事件
+		else if (msg instanceof Terminated) {
+			ActorRef ref = sender();
+			getContext().unwatch(ref);
+			ActorShare actorShare = localShareMapping.remove(ref);
+			actorShareListener.handle(Arrays.asList(actorShare), ClusterStatus.DOWN);
+		} else if (msg instanceof List) {
+			@SuppressWarnings("unchecked")
+			List<Object> msgs = (List<Object>) msg;
+			for (Object m : msgs) {
+				processMessage(m);
+			}
+		}
 	}
 
 	protected void whenMemberDown(Member member) {

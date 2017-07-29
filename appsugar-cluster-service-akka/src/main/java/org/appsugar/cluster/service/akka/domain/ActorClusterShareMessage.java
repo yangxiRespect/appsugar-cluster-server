@@ -9,19 +9,38 @@ import java.io.Serializable;
  */
 public class ActorClusterShareMessage implements Serializable {
 	private static final long serialVersionUID = -7352838644480506887L;
-	//状态
+	/**服务状态**/
 	private ClusterStatus status;
-	//actor共享对象
-	private ActorShare share;
-
-	public ActorClusterShareMessage(ClusterStatus status, ActorShare share) {
-		super();
-		this.status = status;
-		this.share = share;
-	}
+	/**服务名称**/
+	private String name;
+	/**序列号后的引用**/
+	private String ref;
 
 	public ActorClusterShareMessage() {
 		super();
+	}
+
+	public ActorClusterShareMessage(ClusterStatus status, String name, String ref) {
+		super();
+		this.status = status;
+		this.name = name;
+		this.ref = ref;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getRef() {
+		return ref;
+	}
+
+	public void setRef(String ref) {
+		this.ref = ref;
 	}
 
 	public ClusterStatus getStatus() {
@@ -32,19 +51,9 @@ public class ActorClusterShareMessage implements Serializable {
 		this.status = status;
 	}
 
-	public ActorShare getShare() {
-		return share;
-	}
-
-	public void setShare(ActorShare share) {
-		this.share = share;
-	}
-
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("ActorClusterShareMessage [status=").append(status).append(", share=").append(share).append("]");
-		return builder.toString();
+		return "ActorClusterShareMessage [status=" + status + ", name=" + name + ", ref=" + ref + "]";
 	}
 
 }
