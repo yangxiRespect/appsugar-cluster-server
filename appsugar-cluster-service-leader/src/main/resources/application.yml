@@ -1,0 +1,7 @@
+spring.boot.admin.url: http://localhost:20000  
+management.security.enabled: false   
+server.port: 0
+spring.application.name: AKKA_LEADER
+
+spring.boot.admin.client.prefer-ip: true  
+#server.address: 192.168.0.16
