@@ -139,3 +139,32 @@ project(":appsugar-cluster-service-examples"){
 		compile project(":appsugar-cluster-service-binding-spring")
 	}
 }
+
+project(":appsugar-cluster-service-leader"){
+	apply plugin: "org.springframework.boot"
+	dependencies{
+		compile project(":appsugar-cluster-service-binding-spring");
+		compile ("de.codecentric:spring-boot-admin-starter-client:1.5.2")
+	}
+	springBoot {
+		buildInfo()
+		executable = true
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
