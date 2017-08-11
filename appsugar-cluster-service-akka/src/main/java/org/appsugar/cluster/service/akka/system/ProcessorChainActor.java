@@ -1,9 +1,18 @@
 package org.appsugar.cluster.service.akka.system;
 
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+import org.appsugar.cluster.service.akka.domain.LocalPubSubMessage;
+import org.appsugar.cluster.service.domain.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.cluster.pubsub.DistributedPubSub;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
  * 消息链处理型actor
@@ -13,6 +22,7 @@ import akka.actor.AbstractActor;
 public class ProcessorChainActor extends AbstractActor {
 	private static final Logger logger = LoggerFactory.getLogger(ProcessorChainActor.class);
 
+	private Set<String> topics = new HashSet<>();
 	private MessageProcessorChain chain;
 
 	public ProcessorChainActor(MessageProcessorChain chain) {
@@ -23,6 +33,19 @@ public class ProcessorChainActor extends AbstractActor {
 	@Override
 	public Receive createReceive() {
 		return receiveBuilder().matchAny(msg -> {
+			if (msg instanceof LocalPubSubMessage) {
+				LocalPubSubMessage psm = (LocalPubSubMessage) msg;
+				ActorRef mediator = DistributedPubSub.get(context().system()).mediator();
+				String topic = psm.getTopic();
+				if (Objects.equals(psm.getStatus(), Status.ACTIVE)) {
+					mediator.tell(new DistributedPubSubMediator.Subscribe(topic, self()), self());
+					topics.add(topic);
+				} else {
+					mediator.tell(new DistributedPubSubMediator.Unsubscribe(topic, self()), self());
+					topics.remove(topic);
+				}
+				return;
+			}
 			try {
 				chain.receive(context(), msg);
 			} catch (Throwable e) {
@@ -30,4 +53,13 @@ public class ProcessorChainActor extends AbstractActor {
 			}
 		}).build();
 	}
+
+	@Override
+	public void postStop() throws Exception {
+		super.postStop();
+		ActorRef mediator = DistributedPubSub.get(context().system()).mediator();
+		topics.stream().forEach(e -> mediator.tell(new DistributedPubSubMediator.Unsubscribe(e, self()), self()));
+		topics.clear();
+	}
+
 }

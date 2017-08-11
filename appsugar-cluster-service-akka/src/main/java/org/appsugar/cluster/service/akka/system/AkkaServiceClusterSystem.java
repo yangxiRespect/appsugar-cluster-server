@@ -3,7 +3,6 @@ package org.appsugar.cluster.service.akka.system;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -17,6 +16,7 @@ import java.util.stream.Collectors;
 
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
+import org.appsugar.cluster.service.akka.domain.LocalPubSubMessage;
 import org.appsugar.cluster.service.akka.share.ActorShareSystem;
 import org.appsugar.cluster.service.api.Cancellable;
 import org.appsugar.cluster.service.api.MemberStatusListener;
@@ -57,7 +57,6 @@ import scala.concurrent.duration.FiniteDuration;
 public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberStatusListener {
 	private static final String MONITOR_ACTOR_NAME = "monitor";
 	private static final String MONITOR_ACTOR_PATH = "/user/" + MONITOR_ACTOR_NAME;
-	private static final String FOCUS_TOPIC_KEY = "focus_topic";
 	private static final String NODE_INFORMATION_INQUIRE_COMMAND = "node_information_inquire";
 	private static final String NODE_RESOURCE_INQUIRE_COMMAND = "node_resource_inquire";
 	private static final Logger logger = LoggerFactory.getLogger(AkkaServiceClusterSystem.class);
@@ -130,11 +129,7 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 		if (!ref.hasLocalScope()) {
 			throw new RuntimeException("Subscriber do not allowed remote ServiceRef");
 		}
-		AkkaServiceRef akkaServiceRef = (AkkaServiceRef) ref;
-		ActorRef actorRef = akkaServiceRef.destination();
-		//关注
-		mediator.tell(new DistributedPubSubMediator.Subscribe(topic, actorRef), actorRef);
-		akkaServiceRef.getOrSet(FOCUS_TOPIC_KEY, ArrayList::new).add(topic);
+		ref.tell(new LocalPubSubMessage(topic, Status.ACTIVE), ServiceRef.NO_SENDER);
 	}
 
 	@Override
@@ -194,9 +189,6 @@ public class AkkaServiceClusterSystem implements ServiceClusterSystem, MemberSta
 	public void stop(ServiceRef serviceRef) {
 		Objects.requireNonNull(serviceRef);
 		AkkaServiceRef ref = (AkkaServiceRef) serviceRef;
-		List<String> focusTopics = ref.getOrDefault(FOCUS_TOPIC_KEY, Collections.emptyList());
-		focusTopics.forEach(
-				e -> mediator.tell(new DistributedPubSubMediator.Unsubscribe(e, ref.destination()), ref.destination()));
 		system.stop(ref.destination());
 	}
 

@@ -237,7 +237,7 @@ public class DistributionRPCSystemImpl implements DistributionRPCSystem {
 			if (!e.hasLocalScope()) {
 				return;
 			}
-			e.ask(CommandMessage.CLOSE);
+			e.tell(CommandMessage.CLOSE, ServiceRef.NO_SENDER);
 		});
 	}
 

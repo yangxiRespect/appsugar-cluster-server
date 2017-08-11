@@ -212,8 +212,8 @@ public class RPCService implements Service {
 	protected Object processCommandMessage(CommandMessage commandMessage, ServiceContext context) {
 		if (Objects.equals(CommandMessage.CLOSE_COMMAND, commandMessage.getCmd())) {
 			logger.info("prepar to stop self manully self {}    sender {}", context.self(), context.sender());
-			context.system().stop(context.self());
 			stopped = true;
+			context.system().stop(context.self());
 			closeInvoker.stream().forEach(e -> {
 				try {
 					e.invoke(null);
