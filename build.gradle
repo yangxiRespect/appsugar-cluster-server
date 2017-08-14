@@ -10,7 +10,7 @@ buildscript {
 plugins {
 	//gradle release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=1.0.0-release -Prelease.newVersion=1.0.1-SNAPSHOT
     id 'net.researchgate.release' version '2.6.0'
-    id "org.springframework.boot" version "1.5.4.RELEASE" apply  false
+    id "org.springframework.boot" version "1.5.6.RELEASE" apply  false
 }
 apply plugin: 'java'
 //load properties from config file

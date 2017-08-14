@@ -36,7 +36,12 @@ public class Application {
 		system.registerFactory(new GatewayFacadeFactory());
 		system.require(GatewayFacade.name);
 		Thread.sleep(2000);
-		system.serviceOfDynamic(GatewayFacade.class, "0").thenAccept(e -> e.tell("oo1", "hello oo1"));
+		GatewayFacade f = system.serviceOfDynamic(GatewayFacade.class, "0").get();
+		f.tell("oo1", "hello oo1").get();
+		Thread.sleep(6000);
+		//关闭本地服务
+		system.stop(f);
+		Thread.sleep(100000);
 	}
 
 	public static Optional<Config> loadConfig(String file) {
