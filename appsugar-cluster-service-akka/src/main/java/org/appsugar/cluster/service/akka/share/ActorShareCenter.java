@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.management.MBeanServer;
@@ -173,8 +174,10 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 				ClusterStatus.UP.equals(state) ? Status.ACTIVE : Status.INACTIVE));
 	}
 
+	private Supplier<MemberInformation> informationSupplier = MemberInformation::new;
+
 	protected MemberInformation information(Address address) {
-		return MapUtils.getOrCreate(remoteActorRef, address, MemberInformation::new);
+		return MapUtils.getOrCreate(remoteActorRef, address, informationSupplier);
 	}
 
 	public Set<Member> members() {
