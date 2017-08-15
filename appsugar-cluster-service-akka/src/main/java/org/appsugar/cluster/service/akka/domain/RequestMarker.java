@@ -2,6 +2,8 @@ package org.appsugar.cluster.service.akka.domain;
 
 import java.util.concurrent.CompletableFuture;
 
+import akka.actor.ActorRef;
+
 /**
  * 请求标记
  * @author NewYoung
@@ -17,12 +19,15 @@ public class RequestMarker<T> {
 	//回调future
 	private CompletableFuture<T> future;
 
-	public RequestMarker(int sequence, long startTime, long endTime, CompletableFuture<T> future) {
+	private ActorRef des;
+
+	public RequestMarker(int sequence, long startTime, long endTime, CompletableFuture<T> future, ActorRef des) {
 		super();
 		this.sequence = sequence;
 		this.startTime = startTime;
 		this.endTime = endTime;
 		this.future = future;
+		this.des = des;
 	}
 
 	public long getStartTime() {
@@ -55,6 +60,14 @@ public class RequestMarker<T> {
 
 	public void setSequence(int sequence) {
 		this.sequence = sequence;
+	}
+
+	public ActorRef getDes() {
+		return des;
+	}
+
+	public void setDes(ActorRef des) {
+		this.des = des;
 	}
 
 	@Override
