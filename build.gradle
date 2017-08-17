@@ -76,17 +76,19 @@ configure(subprojects) { project ->
 		}
 	}
 	//deploy to  nexus
-	uploadArchives {
-	    repositories {
-	       mavenDeployer {
-             repository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/releases") {
-            	 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")
-			 }
-			 snapshotRepository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/snapshots") {
-                 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")  
-             }  
-	       }
-	    }
+	if(project.name.indexOf("leader")==-1 && project.name.indexOf("examples")==-1 ){ 
+		uploadArchives {
+		    repositories {
+		       mavenDeployer {
+	             repository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/releases") {
+	            	 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")
+				 }
+				 snapshotRepository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/snapshots") {
+	                 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")  
+	             }  
+		       }
+		    }
+		}
 	}
 	build.dependsOn install
 	rootProject.tasks.afterReleaseBuild.dependsOn uploadArchives
