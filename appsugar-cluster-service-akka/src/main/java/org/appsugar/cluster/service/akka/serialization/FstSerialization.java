@@ -35,7 +35,12 @@ public class FstSerialization extends JSerializer {
 
 	@Override
 	public byte[] toBinary(Object msg) {
-		return config.asByteArray(msg);
+		try {
+			return config.asByteArray(msg);
+		} catch (RuntimeException ex) {
+			logger.error("serializa object error ", ex);
+			throw ex;
+		}
 	}
 
 	@Override
