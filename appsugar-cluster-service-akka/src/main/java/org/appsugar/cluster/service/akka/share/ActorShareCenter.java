@@ -186,7 +186,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 
 	@Override
 	public Set<String> provideServices() {
-		return localActorRefList.stream().map(ActorShare::getName).collect(Collectors.toSet());
+		return localActorRefList.stream().map(e -> e.getName() + " : " + e.getActorRef().path().name())
+				.collect(Collectors.toSet());
 	}
 
 	@Override
@@ -195,7 +196,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			Address key = e.getKey();
 			List<ActorShare> value = e.getValue();
 			String memberAddress = key.toString();
-			return value.stream().map(a -> memberAddress + ":" + a.getName());
+			return value.stream().map(a -> memberAddress + ":" + a.getName() + " : " + a.getActorRef().path().name());
 		}).collect(Collectors.toSet());
 	}
 }
