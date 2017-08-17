@@ -364,7 +364,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 
 	@Override
 	public Set<String> supplys() {
-		return localActorRefList.stream().map(ActorShare::getName).collect(Collectors.toSet());
+		return localActorRefList.stream().map(e -> e.getName() + " : " + e.getActorRef().path().name())
+				.collect(Collectors.toSet());
 	}
 
 	private <T> Set<T> unmodifySet(Set<T> orignal) {
@@ -375,8 +376,8 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 	public List<String> memberServices() {
 		return remoteActorRef.entrySet().stream().map(e -> {
 			Address address = e.getKey();
-			return address.toString()
-					+ (e.getValue().getShareActorList().stream().map(ActorShare::getName).collect(Collectors.toList()));
+			return address.toString() + (e.getValue().getShareActorList().stream()
+					.map(a -> a.getName() + " : " + a.getActorRef().path().name()).collect(Collectors.toList()));
 		}).collect(Collectors.toList());
 	}
 
