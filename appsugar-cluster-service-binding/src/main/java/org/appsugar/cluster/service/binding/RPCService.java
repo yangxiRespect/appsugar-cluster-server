@@ -259,7 +259,7 @@ public class RPCService implements Service {
 		serviceReadyInvokerMap.entrySet().forEach(e -> rpcSystem.getServiceRefAndCreateFocusOn(e.getKey()).add(self));
 		//处理已准备服务
 		for (String serviceName : serviceReadyInvokerMap.keySet()) {
-			ServiceClusterRef refs = rpcSystem.system.serviceOf(serviceName);
+			ServiceClusterRef refs = system.serviceOf(serviceName);
 			if (refs == null || refs.size() == 0) {
 				continue;
 			}
