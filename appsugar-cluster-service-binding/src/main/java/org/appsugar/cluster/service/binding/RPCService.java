@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import org.appsugar.cluster.service.api.Service;
+import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
 import org.appsugar.cluster.service.api.ServiceContext;
 import org.appsugar.cluster.service.domain.CommandMessage;
@@ -236,12 +237,17 @@ public class RPCService implements Service {
 			}
 		});
 		//处理已准备服务
-		rpcSystem.serviceRefs.entrySet().stream().forEach(e -> {
-			try {
-				handle(new ServiceStatusMessage(e.getValue(), Status.ACTIVE), context);
-			} catch (Throwable ex) {
+		//处理已准备服务
+		for (String serviceName : serviceReadyInvokerMap.keySet()) {
+			ServiceClusterRef refs = system.serviceOf(serviceName);
+			if (refs == null || refs.size() == 0) {
+				continue;
 			}
-		});
+			try {
+				handle(new ServiceStatusMessage(refs.one(), Status.ACTIVE), context);
+			} catch (@SuppressWarnings("unused") Throwable ex) {
+			}
+		}
 		//处理关闭方法
 		closeInvoker = RPCSystemUtil.getCloseInvoker(serves);
 	}
