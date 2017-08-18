@@ -16,8 +16,6 @@ public class ServiceStatusHelper {
 
 	private Class<?> interfaceClass;
 
-	private Status status = Status.INACTIVE;
-
 	public ServiceStatusHelper(Class<?> interfaceClass, Method method, Object target) {
 		super();
 		this.interfaceClass = interfaceClass;
@@ -29,11 +27,6 @@ public class ServiceStatusHelper {
 	 * 调用方法后返回true,其他返回false
 	 */
 	public void tryInvoke(DistributionRPCSystem system, Status s) throws Throwable {
-		if (status.equals(s)) {
-			//状态未改变
-			return;
-		}
-		status = Status.ACTIVE.equals(s) ? Status.INACTIVE : Status.ACTIVE;
 		methodInvoker.invoke(new Object[] { system.serviceOf(interfaceClass), s });
 	}
 
@@ -49,7 +42,7 @@ public class ServiceStatusHelper {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ServiceReadyHelper [methodInvoker=").append(methodInvoker).append(", interfaceClass=")
-				.append(interfaceClass).append(", status=").append(status).append("]");
+				.append(interfaceClass).append("]");
 		return builder.toString();
 	}
 
