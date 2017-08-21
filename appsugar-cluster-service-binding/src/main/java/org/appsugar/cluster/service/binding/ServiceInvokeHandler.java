@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ServiceInvokeHandler implements InvocationHandler {
 	private static final Logger logger = LoggerFactory.getLogger(ServiceInvokeHandler.class);
-	public static final String METHOD_CACHE_KEY = "fast_method_cache";
+	private String fast_method_cache;
 	private String name;
 	private ServiceClusterSystem system;
 	private Map<Method, List<String>> paramNameMap;
@@ -44,6 +44,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		this.name = name;
 		this.system = system;
 		this.interfaceClass = interfaceClass;
+		fast_method_cache += "fast_method_cache:" + interfaceClass.getName();
 		paramNameMap = Arrays.asList(interfaceClass.getMethods()).stream()
 				.map(e -> new KeyValue<>(e, RPCSystemUtil.getNameList(interfaceClass, e)))
 				.collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
@@ -100,7 +101,7 @@ public class ServiceInvokeHandler implements InvocationHandler {
 	}
 
 	protected Object populateMethodInvokerMessage(Method method, Object[] params, ServiceRef ref) {
-		Map<Method, Integer> sequenceMap = ref.get(METHOD_CACHE_KEY);
+		Map<Method, Integer> sequenceMap = ref.get(fast_method_cache);
 		if (sequenceMap == null || sequenceMap.get(method) == null) {
 			return new MethodInvokeMessage(paramNameMap.get(method), params);
 		}
@@ -111,13 +112,13 @@ public class ServiceInvokeHandler implements InvocationHandler {
 
 	protected void optimizeMethodInvoker(Method method, Integer sequence, ServiceRef ref) {
 		//使用乐观锁
-		Map<Method, Integer> sequenceMap = ref.get(METHOD_CACHE_KEY);
+		Map<Method, Integer> sequenceMap = ref.get(fast_method_cache);
 		if (sequenceMap == null) {
 			synchronized (ref) {
-				sequenceMap = ref.get(METHOD_CACHE_KEY);
+				sequenceMap = ref.get(fast_method_cache);
 				if (sequenceMap == null) {
 					sequenceMap = new ConcurrentHashMap<>();
-					ref.attach(METHOD_CACHE_KEY, sequenceMap);
+					ref.attach(fast_method_cache, sequenceMap);
 				}
 			}
 		}
