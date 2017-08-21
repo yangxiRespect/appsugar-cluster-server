@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -18,6 +19,8 @@ import org.appsugar.cluster.service.domain.MethodInvokeMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeOptimizingMessage;
 import org.appsugar.cluster.service.domain.MethodInvokeOptimizingResponse;
 import org.appsugar.cluster.service.util.RPCSystemUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 服务调用代理接口
@@ -25,6 +28,7 @@ import org.appsugar.cluster.service.util.RPCSystemUtil;
  * 2016年6月3日下午5:52:50
  */
 public class ServiceInvokeHandler implements InvocationHandler {
+	private static final Logger logger = LoggerFactory.getLogger(ServiceInvokeHandler.class);
 	public static final String METHOD_CACHE_KEY = "fast_method_cache";
 	private String name;
 	private ServiceClusterSystem system;
@@ -67,8 +71,13 @@ public class ServiceInvokeHandler implements InvocationHandler {
 		if (serviceRef == null) {
 			throw new ServiceNotFoundException("service " + name + " not ready");
 		}
+
 		Object message = populateMethodInvokerMessage(method, args, serviceRef);
-		CompletableFuture<?> future = invokeAsync(message, serviceRef, method);
+		CompletableFuture<?> future = invokeAsync(message, serviceRef, method).whenComplete((r, e) -> {
+			if (Objects.nonNull(e)) {
+				logger.error("invoke {}.{} failure see below exception", interfaceClass, methodName);
+			}
+		});
 		return CompletableFuture.class.isAssignableFrom(method.getReturnType()) ? future : future.get();
 	}
 

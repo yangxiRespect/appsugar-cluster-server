@@ -33,12 +33,13 @@ public class DistributionRPCSystemTest extends TestCase {
 				new AkkaServiceClusterSystem("a", ConfigFactory.load()));
 		system.serviceFor(new ServiceDescriptor(Arrays.asList(new HelloImpl())), "test");
 		Hello h = system.serviceOf(Hello.class);
+		System.out.println("xxxxxxxxxxxxxxxxx");
 		System.out.println(" 调用第一次结果" + h.sayHello());
 		System.out.println(" 调用第二次结果" + h.sayHello());
-		System.out.println(" async 调用结果" + h.asyncSayHello().get());
+		System.out.println(" async 调用结果" + h.asyncSayHello());
 		system.publish("1String", "play");
 		system.publish(1, "play");
-		Thread.sleep(1000);
+		Thread.sleep(2000);
 		system.terminate();
 	}
 
