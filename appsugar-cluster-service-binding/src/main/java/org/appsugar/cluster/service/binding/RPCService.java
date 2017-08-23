@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.appsugar.cluster.service.akka.domain.LocalPubSubMessage;
+import org.appsugar.cluster.service.akka.system.ProcessorChainActor;
 import org.appsugar.cluster.service.api.Service;
 import org.appsugar.cluster.service.api.ServiceClusterRef;
 import org.appsugar.cluster.service.api.ServiceClusterSystem;
@@ -240,7 +242,9 @@ public class RPCService implements Service {
 		serviceReadyInvokerMap.keySet().stream().forEach(this.system::focusNormalService);
 		//初始化事件调用方法
 		eventInvokerMap = RPCSystemUtil.getEventMethodInvoke(serves);
-		eventInvokerMap.keySet().stream().forEach(e -> system.subscribe(e, context.self()));
+		ProcessorChainActor root = ProcessorChainActor.getInstance();
+		//need register immediately
+		eventInvokerMap.keySet().stream().forEach(e -> root.dispatch(new LocalPubSubMessage(e, Status.ACTIVE)));
 		//初始化重复调用方法
 		repeatInvokers = RPCSystemUtil.getRepeatInvoker(serves);
 		if (!repeatInvokers.isEmpty()) {

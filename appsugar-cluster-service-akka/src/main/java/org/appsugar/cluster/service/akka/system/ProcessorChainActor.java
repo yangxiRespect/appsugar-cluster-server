@@ -22,6 +22,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 public class ProcessorChainActor extends AbstractActor {
 	private static final Logger logger = LoggerFactory.getLogger(ProcessorChainActor.class);
 
+	private static ThreadLocal<ProcessorChainActor> local = new ThreadLocal<>();
 	private Set<String> topics = new HashSet<>();
 	private MessageProcessorChain chain;
 
@@ -33,25 +34,34 @@ public class ProcessorChainActor extends AbstractActor {
 	@Override
 	public Receive createReceive() {
 		return receiveBuilder().matchAny(msg -> {
-			if (msg instanceof LocalPubSubMessage) {
-				LocalPubSubMessage psm = (LocalPubSubMessage) msg;
-				ActorRef mediator = DistributedPubSub.get(context().system()).mediator();
-				String topic = psm.getTopic();
-				if (Objects.equals(psm.getStatus(), Status.ACTIVE)) {
-					mediator.tell(new DistributedPubSubMediator.Subscribe(topic, self()), self());
-					topics.add(topic);
-				} else {
-					mediator.tell(new DistributedPubSubMediator.Unsubscribe(topic, self()), self());
-					topics.remove(topic);
-				}
-				return;
-			}
 			try {
-				chain.receive(context(), msg);
-			} catch (Throwable e) {
-				logger.error("process msg error msg:{} ex: {}", msg, e);
+				local.set(this);
+				dispatch(msg);
+			} finally {
+				local.remove();
 			}
 		}).build();
+	}
+
+	public void dispatch(Object msg) {
+		if (msg instanceof LocalPubSubMessage) {
+			LocalPubSubMessage psm = (LocalPubSubMessage) msg;
+			ActorRef mediator = DistributedPubSub.get(context().system()).mediator();
+			String topic = psm.getTopic();
+			if (Objects.equals(psm.getStatus(), Status.ACTIVE)) {
+				mediator.tell(new DistributedPubSubMediator.Subscribe(topic, self()), self());
+				topics.add(topic);
+			} else {
+				mediator.tell(new DistributedPubSubMediator.Unsubscribe(topic, self()), self());
+				topics.remove(topic);
+			}
+			return;
+		}
+		try {
+			chain.receive(context(), msg);
+		} catch (Throwable e) {
+			logger.error("process msg error msg:{} ex: {}", msg, e);
+		}
 	}
 
 	@Override
@@ -62,4 +72,7 @@ public class ProcessorChainActor extends AbstractActor {
 		topics.clear();
 	}
 
+	public static ProcessorChainActor getInstance() {
+		return local.get();
+	}
 }
