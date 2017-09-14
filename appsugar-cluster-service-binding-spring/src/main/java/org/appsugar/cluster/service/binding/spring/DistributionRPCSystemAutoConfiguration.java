@@ -79,7 +79,9 @@ public class DistributionRPCSystemAutoConfiguration
 		DistributionRPCSystemCreator creator = new DistributionRPCSystemCreator();
 		creator.setConfigs(e.getProperty(DISTRIBUTION_RPC_SYSTEM_CONFIG_KEY, "application.conf"));
 		creator.setName(e.getProperty(DISTRIBUTION_RPC_SYSTEM_NAME_KEY, "c"));
-		return creator.getObject();
+		DistributionRPCSystem s = creator.getObject();
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> s.terminate()));
+		return s;
 	}
 
 	@Override
