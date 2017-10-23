@@ -69,7 +69,7 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			StandardMBean mbean = new StandardMBean(this, ActorShareMBean.class);
 			server.registerMBean(mbean, name);
 		} catch (Exception e) {
-			logger.warn("register mbean error ", e);
+			logger.warn("register mbean error ", e.getMessage());
 		}
 	}
 
@@ -198,5 +198,17 @@ public class ActorShareCenter implements ClusterMemberListener, ActorShareListen
 			String memberAddress = key.toString();
 			return value.stream().map(a -> memberAddress + ":" + a.getName() + " : " + a.getActorRef().path().name());
 		}).collect(Collectors.toSet());
+	}
+
+	@Override
+	public String reShare() {
+		localActorRefList.stream().filter(e->!e.isLocal()).forEach(a->{
+			members.stream()
+			.forEach(m -> system.actorSelection(m.address() + ACTOR_SHARE_COLLECTOR_PATH).tell(
+					new ActorClusterShareMessage(ClusterStatus.UP, new ActorShare("")),
+					a.getActorRef()));
+		});
+		
+		return members.toString();
 	}
 }

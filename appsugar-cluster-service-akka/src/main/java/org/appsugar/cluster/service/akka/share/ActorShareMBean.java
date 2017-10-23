@@ -21,4 +21,9 @@ public interface ActorShareMBean {
 	 * 2017年7月17日下午4:37:09
 	 */
 	Set<String> memberShareService();
+	
+	/**
+	 * 重新发布
+	 */
+	String   reShare();
 }
