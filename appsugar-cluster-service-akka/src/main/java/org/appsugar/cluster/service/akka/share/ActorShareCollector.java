@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import akka.cluster.ClusterEvent;
 import org.appsugar.cluster.service.akka.domain.ActorClusterShareMessage;
 import org.appsugar.cluster.service.akka.domain.ActorShare;
 import org.appsugar.cluster.service.akka.domain.ClusterStatus;
@@ -47,7 +48,7 @@ public class ActorShareCollector extends AbstractActor {
 	private Map<ActorRef, ActorShare> localShareMapping = new HashMap<>();
 	private Cluster cluster = Cluster.get(getContext().system());
 	private List<Class<?>> clusterSubscribeTypeList = Arrays.asList(MemberUp.class, MemberRemoved.class,
-			UnreachableMember.class, ReachableMember.class);
+			ClusterEvent.ReachabilityEvent.class);
 	private boolean autoDown = false;
 
 	public ActorShareCollector(ClusterMemberListener memberListener, ActorShareListener actorShareListener) {
@@ -86,12 +87,15 @@ public class ActorShareCollector extends AbstractActor {
 					memberListener.handle(member, ClusterStatus.DOWN);
 				} else if (msg instanceof UnreachableMember) {
 					Member member = ((UnreachableMember) msg).member();
+					System.out.println("node Unreachable "+member);
 					memberListener.handle(member, ClusterStatus.DOWN);
 					if (autoDown) {
 						whenMemberDown(member);
 					}
 				} else if (msg instanceof ReachableMember) {
-					memberListener.handle(((ReachableMember) msg).member(), ClusterStatus.UP);
+					Member member =((ReachableMember) msg).member();
+					System.out.println("node reachable "+member);
+					memberListener.handle(member, ClusterStatus.UP);
 				}
 				//处理共享actor消息
 				else if (msg instanceof ActorClusterShareMessage) {

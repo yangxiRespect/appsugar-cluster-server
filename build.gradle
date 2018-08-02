@@ -34,7 +34,7 @@ configure(subprojects) { project ->
 	sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 	repositories {
-		maven{url "http://maven.aliyun.com/nexus/content/groups/public"}
+		//maven{url "http://maven.aliyun.com/nexus/content/groups/public"}
 		mavenCentral()
 		mavenLocal()
 	}
@@ -78,17 +78,17 @@ configure(subprojects) { project ->
 	}
 	//deploy to  nexus
 	if(project.name.indexOf("leader")==-1 && project.name.indexOf("examples")==-1 ){ 
-		uploadArchives {
-		    repositories {
-		       mavenDeployer {
-	             repository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/releases") {
-	            	 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")
-				 }
-				 snapshotRepository(url: "http://nexus.ggxueche.cn/nexus/content/repositories/snapshots") {
-	                 authentication(userName: "${nexusUserName}", password: "${nexusPassword}")  
-	             }  
-		       }
-		    }
+		 uploadArchives {
+        repositories {
+            mavenDeployer {
+                repository(url: "https://repository.bj1580.top/repository/maven-releases/") {
+                    authentication(userName: mavenUser, password: mavenPassword)
+                }
+                snapshotRepository(url: "https://repository.bj1580.top/repository/maven-snapshots/") {
+                    authentication(userName: mavenUser, password: mavenPassword)
+                }
+            }
+        }
 		}
 	}
 	build.dependsOn install
