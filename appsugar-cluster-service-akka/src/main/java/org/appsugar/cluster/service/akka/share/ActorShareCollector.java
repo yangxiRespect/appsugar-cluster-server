@@ -42,13 +42,13 @@ public class ActorShareCollector extends AbstractActor {
 
 	public static final String AUTO_DOWN_UNREACHEABLE_KEY = "akka.actor.share.auto-down";
 
+
+
 	private ClusterMemberListener memberListener;
 	private ActorShareListener actorShareListener;
 	private Set<ActorRef> watchList = new HashSet<>();
 	private Map<ActorRef, ActorShare> localShareMapping = new HashMap<>();
 	private Cluster cluster = Cluster.get(getContext().system());
-	private List<Class<?>> clusterSubscribeTypeList = Arrays.asList(MemberUp.class, MemberRemoved.class,
-			ClusterEvent.ReachabilityEvent.class);
 	private boolean autoDown = false;
 
 	public ActorShareCollector(ClusterMemberListener memberListener, ActorShareListener actorShareListener) {
@@ -65,13 +65,13 @@ public class ActorShareCollector extends AbstractActor {
 	@Override
 	public void preStart() throws Exception {
 		super.preStart();
-		clusterSubscribeTypeList.stream().forEach(c -> cluster.subscribe(self(), c));
+		cluster.subscribe(getSelf(), ClusterEvent.initialStateAsEvents(),
+				ClusterEvent.MemberEvent.class, UnreachableMember.class);
 	}
 
 	@Override
 	public void postStop() throws Exception {
 		super.postStop();
-		clusterSubscribeTypeList.stream().forEach(c -> cluster.unsubscribe(self(), c));
 		watchList.stream().forEach(w -> getContext().unwatch(w));
 	}
 
